@@ -595,7 +595,10 @@ const mouseHandler = (event) => {
     // Hiding cursor
     if(mouseHideHandler !== null) clearTimeout(mouseHideHandler);
     mouseHideHandler = setTimeout(((x, y) => {
-        if(mouseX === x && mouseY === y) document.body.classList.add("still-cursor");
+        if(mouseX === x && mouseY === y) {
+            document.body.classList.add("still-cursor");
+            disableIframeStreams();
+        }
     }).bind(null, mouseX, mouseY), 3000);
     //
     setTimeout(() => {
