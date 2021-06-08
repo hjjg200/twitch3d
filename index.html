@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Twitch 3D</title>
+        <title>Twitch3D</title>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
         <link href="https://hjjg200.github.io/fonts/GmarketSans/GmarketSans.css" rel="stylesheet">
@@ -126,10 +127,17 @@ div.frame.frame-ralign {
     height: 100%;
     position: relative;
 }
-.stream.enable-iframe {
-    box-shadow: 0 0 0 4px rgba(92, 152, 255, 0.55); /* visual hint */
+@keyframes iframe-hint {
+    from {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    to {
+        background: rgba(255, 255, 255, 0);
+    }
 }
 .stream.enable-iframe .video-overlay {
+    box-shadow: 0 0 0 4px rgba(92, 152, 255, 0.55) inset; /* visual hint */
+    animation: cubic-bezier(0.0, 0.0, 0.2, 1) 2.5s 1 iframe-hint;
     pointer-events: none;
 }
 .stream.enable-iframe iframe {
@@ -166,7 +174,6 @@ div.frame.frame-ralign {
     display: block;
     line-height: 1.75rem;
     text-align: center;
-    user-select: none;
 }
 .stream .title-bar button {
     border-radius: 0;
@@ -401,6 +408,7 @@ const locales = {
         "#btn-fullscreen": "전체화면",
         "#btn-exit-fullscreen": "전체화면 나가기",
         "#add-stream-modal h2": "채널 추가",
+        "#add-stream-modal h2 + p": "추가할 스트리머의 Twitch 아이디를 입력하세요",
         ".button-ok": "확인",
         ".button-cancel": "취소"
     }
@@ -500,6 +508,7 @@ document.addEventListener("contextmenu", (ev) => {
     ctxMenu.style.left = `${pxToRem(mouseX + 3)}rem`;
 });
 document.addEventListener("mousedown", (ev) => {
+    disableIframeStreams();
     if(!hasParent(ev.target, ctxMenu)) {
         ctxMenu.style.display = "";
     }
@@ -583,12 +592,12 @@ const mouseHandler = (event) => {
     document.body.classList.remove("still-cursor");
     mouseX = event.pageX;
     mouseY = event.pageY;
-    if(mouseHideHandler !== null) {
-        clearTimeout(mouseHideHandler);
-    }
+    // Hiding cursor
+    if(mouseHideHandler !== null) clearTimeout(mouseHideHandler);
     mouseHideHandler = setTimeout(((x, y) => {
         if(mouseX === x && mouseY === y) document.body.classList.add("still-cursor");
     }).bind(null, mouseX, mouseY), 3000);
+    //
     setTimeout(() => {
         mouseThrottled = false;
     }, 16);
@@ -634,17 +643,28 @@ const focusStream = (stream) => {
     cleanupZIndex();
 };
 
+let iframeEnabledStream = null;
 const disableIframeStreams = () => {
     const streams = document.querySelectorAll(".stream.enable-iframe");
     for(const stream of streams.values()) {
         stream.classList.remove("enable-iframe");
     }
+    iframeEnabledStream = null;
 };
 
 const enableIframeStream = (stream) => {
     disableIframeStreams();
+    iframeEnabledStream = stream;
     stream.classList.add("enable-iframe");
 };
+
+document.addEventListener("mouseover", (ev) => {
+    if(iframeEnabledStream !== null) {
+        if(!hasParent(ev.target, iframeEnabledStream) && iframeEnabledStream !== ev.target) {
+            disableIframeStreams();
+        }
+    }
+});
 
 const unmaximizeStream = (stream) => {
     stream.classList.remove("maximized");
