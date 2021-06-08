@@ -9,3 +9,5 @@ Watch multiple streams and move or scale them as you please.
 ## TODO
 - [ ] Chat support
 - [ ] Change top and left for new windows as new windows are added
+- [ ] Make offline channels transparent when cursor is still
+- [ ] Remember volumes when maximized and normal separately

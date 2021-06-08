@@ -40,6 +40,7 @@ body.lang-ko {
 
 h1, h2, h3, h4 {
     font-family: Poppins, sans-serif;
+    letter-spacing: -0.025rem;
 }
 body.lang-ko h1,
 body.lang-ko h2,
@@ -535,7 +536,7 @@ btnExitFullscreen.addEventListener("mouseup", (ev) => {
     document.exitFullscreen();
 });
 btnGitHub.addEventListener("mouseup", (ev) => {
-    window.open("https://github.com/hjjg200/hjjg200.github.io/tree/main/twitch3d", "_blank");
+    window.open("https://github.com/hjjg200/twitch3d", "_blank");
 });
 document.addEventListener("fullscreenchange", (ev) => {
     document.body.classList[document.fullscreenElement === null ? "remove" : "add"]("fullscreen");
