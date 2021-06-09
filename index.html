@@ -353,6 +353,99 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     width: 15rem;
     margin-top: 3rem;
 }
+
+
+/* NEW STYLE */
+:root {
+    --title-bar-height: 1.5rem;
+    --corner-width: 1.2rem;
+    --corner-edge-width: 0.4rem;
+}
+
+.window {
+    position: absolute;
+    background: green;
+}
+.window.in-move .corner {
+    display: none;
+}
+.window-relative {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.window-title-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--title-bar-height);
+}
+.window-title-bar-relative,
+.window-title {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.window-title-bar-relative {
+    position: relative;
+}
+.window-title {
+    background: orange;
+    position: absolute;
+}
+.window-controls {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+}
+.window-controls button {
+    background: purple;
+    width: 2rem;
+}
+.window .corner {
+    background: rgba(255, 0, 0, 0.5);
+    transform: translate(-50%, -50%);
+    position: absolute;
+}
+.window .corner-top,
+.window .corner-bottom {
+    cursor: ns-resize;
+    left: 50%;
+    width: 100%;
+    height: var(--corner-edge-width);
+}
+.window .corner-bottom {top: 100%;}
+.window .corner-left,
+.window .corner-right {
+    cursor: ew-resize;
+    top: 50%;
+    width: var(--corner-edge-width);
+    height: 100%;
+}
+.window .corner-right {left: 100%;}
+.window .corner-top-left,
+.window .corner-top-right,
+.window .corner-bottom-right,
+.window .corner-bottom-left {
+    width: var(--corner-width);
+    height: var(--corner-width);
+}
+.window .corner-top-left,
+.window .corner-bottom-right {
+    cursor: nwse-resize;
+}
+.window .corner-top-right,
+.window .corner-bottom-left {
+    cursor: nesw-resize;
+}
+.window .corner-top-right {left: 100%;}
+.window .corner-bottom-right {left: 100%; top: 100%;}
+.window .corner-bottom-left {top: 100%;}
         </style>
     </head>
     <body>
@@ -424,6 +517,334 @@ if(locales[lang] !== undefined) {
 }
 
 const streamsContainer = document.getElementById("streams-container");
+
+const createElement = (tag, ...classes) => {
+    const element = document.createElement(tag);
+    element.classList.add(...classes);
+    return element;
+};
+
+// Mouse tracker
+let mouseX = 0;
+let mouseY = 0;
+let mouseThrottled = false;
+let mouseHideHandler = null;
+const mouseHandler = (event) => {
+    if(mouseThrottled) return;
+    mouseThrottled = true;
+    document.body.classList.remove("still-cursor");
+    mouseX = Rem.fromPixel(event.pageX);
+    mouseY = Rem.fromPixel(event.pageY);
+    // Hiding cursor
+    if(mouseHideHandler !== null) clearTimeout(mouseHideHandler);
+    mouseHideHandler = setTimeout(((x, y) => {
+        if(mouseX === x && mouseY === y) {
+            document.body.classList.add("still-cursor");
+        }
+    }).bind(null, mouseX, mouseY), 3000);
+    //
+    setTimeout(() => {
+        mouseThrottled = false;
+    }, 16);
+};
+document.addEventListener("mousemove", mouseHandler);
+
+// Class Rem
+class Rem {
+    static get fontSize() {
+        return parseFloat(getComputedStyle(document.documentElement).fontSize);
+    }
+    static toPixel(rem) {
+        return rem * Rem.fontSize;
+    }
+    static toString(rem) {
+        return `${rem}rem`;
+    }
+    static fromPixel(px) {
+        return px / this.fontSize;
+    }
+    static fromString(str) {
+        return parseFloat(str.trim().replace("rem", ""));
+    }
+    static translateXY(x, y) {
+        return `translate(${this.toString(x)}, ${this.toString(y)})`;
+    }
+    static fromTranslateXY(str) {
+        if(str === "") return [new Rem(0), new Rem(0)];
+        const rmp = str.slice(str.indexOf("(") + 1, str.indexOf(")"));
+        const xy = rmp.split(/\s*,\s*/g);
+        return [this.fromString(xy[0]), this.fromString(xy[1])];
+    }
+};
+
+// Class Window
+class Window {
+    static windows = {};
+    static autoIncrement = 0;
+    static newId() {
+        return `window-${this.autoIncrement++}`;
+    }
+    constructor({top, left, width, height, xOffset, yOffset}) {
+        // TODO: create window
+        const id = Window.newId();
+        this.element = createElement("div", "window");
+        this.element.id = id;
+        this.element.style.top = Rem.toString(top);
+        this.element.style.left = Rem.toString(left);
+        this.element.style.width = Rem.toString(width);
+        this.element.style.height = Rem.toString(height);
+        this.element.style.transform = Rem.translateXY(xOffset, yOffset);
+        //  div.window
+        //      div.window-relative
+        //          div.window-title-bar
+        //              div.window-title-bar-relative
+            //              div.window-title
+            //              div.window-controls
+            //                  button.button-maximize
+            //                  button.button-close
+        //          div.corner.corner-top
+        //          div.corner.corner-right
+        //          div.corner.corner-bottom
+        //          div.corner.corner-left
+        //          div.corner.corner-top-left
+        //          div.corner.corner-top-right
+        //          div.corner.corner-bottom-right
+        //          div.corner.corner-bottom-left
+        //          div.window-content
+
+        // Relative
+        const relative = createElement("div", "window-relative");
+        // Title bar
+        const titleBar = createElement("div", "window-title-bar");
+        const titleBarRelative = createElement("div", "window-title-bar-relative");
+        const title = createElement("div", "window-title");
+        const controls = createElement("div", "window-controls");
+        const btnMaximize = createElement("button", "button-maximize");
+        const btnClose = createElement("button", "button-close");
+
+        title.addEventListener("mousedown", (() => {
+            Window._startResize(this, 0, 0);
+        }).bind(this));
+
+        titleBarRelative.appendChild(title);
+        controls.appendChild(btnMaximize);
+        controls.appendChild(btnClose);
+        titleBarRelative.appendChild(controls);
+        titleBar.appendChild(titleBarRelative);
+        relative.appendChild(titleBar);
+        // Corners
+        const cornerTop = createElement("div", "corner", "corner-top");
+        const cornerRight = createElement("div", "corner", "corner-right");
+        const cornerBottom = createElement("div", "corner", "corner-bottom");
+        const cornerLeft = createElement("div", "corner", "corner-left");
+        const cornerTopLeft = createElement("div", "corner", "corner-top-left");
+        const cornerTopRight = createElement("div", "corner", "corner-top-right");
+        const cornerBottomRight = createElement("div", "corner", "corner-bottom-right");
+        const cornerBottomLeft = createElement("div", "corner", "corner-bottom-left");
+
+        cornerTop.addEventListener("mousedown", (() => {
+            Window._startResize(this, 1, 0);
+        }).bind(this));
+        cornerRight.addEventListener("mousedown", (() => {
+            Window._startResize(this, 0, -1);
+        }).bind(this));
+        cornerBottom.addEventListener("mousedown", (() => {
+            Window._startResize(this, -1, 0);
+        }).bind(this));
+        cornerLeft.addEventListener("mousedown", (() => {
+            Window._startResize(this, 0, 1);
+        }).bind(this));
+        cornerTopLeft.addEventListener("mousedown", (() => {
+            Window._startResize(this, 1, 1);
+        }).bind(this));
+        cornerTopRight.addEventListener("mousedown", (() => {
+            Window._startResize(this, 1, -1);
+        }).bind(this));
+        cornerBottomRight.addEventListener("mousedown", (() => {
+            Window._startResize(this, -1, -1);
+        }).bind(this));
+        cornerBottomLeft.addEventListener("mousedown", (() => {
+            Window._startResize(this, -1, 1);
+        }).bind(this));
+
+        relative.appendChild(cornerTop);
+        relative.appendChild(cornerRight);
+        relative.appendChild(cornerBottom);
+        relative.appendChild(cornerLeft);
+        relative.appendChild(cornerTopLeft);
+        relative.appendChild(cornerTopRight);
+        relative.appendChild(cornerBottomRight);
+        relative.appendChild(cornerBottomLeft);
+
+        // Window content
+        this.contentElement = createElement("div", "window-content");
+        relative.appendChild(this.contentElement);
+
+        // Append
+        this.element.appendChild(relative);
+        streamsContainer.appendChild(this.element);
+        Window.windows[id] = this;
+
+    }
+    setTitle(title) {
+
+    }
+    close() {
+
+    }
+    maximize(xAxis, yAxis) {
+
+    }
+    unmaximize() {
+
+    }
+    focus() {
+
+    }
+    blur() {
+
+    }
+    reposition() {
+
+    }
+    static _resizeHandler = null;
+    static _minWidth = 9;
+    static _minHeight = 6;
+    static _stopResize() {
+        for(const el of document.querySelectorAll(".window.in-move, .window.in-resize").values()) {
+            el.classList.remove("in-move", "in-resize");
+        }
+        if(this._resizeHandler !== null) {
+            clearInterval(this._resizeHandler);
+            this._resizeHandler = null;
+        }
+    }
+    static _startResize(window, tbWise, lrWise) {
+        // tbWise: 1=top, 0=none, -1=bottom
+        // lrWise: 1=left, 0=none, -1=right
+        // tbWise 0, lrWise 0 = moving window
+        const el = window.element;
+        const top0 = Rem.fromString(el.style.top);
+        const left0 = Rem.fromString(el.style.left);
+        const width0 = Rem.fromString(el.style.width);
+        const height0 = Rem.fromString(el.style.height);
+        const [xOffset0, yOffset0] = Rem.fromTranslateXY(el.style.transform);
+        const [mouseX0, mouseY0] = [mouseX, mouseY];
+
+        const snapDist = Rem.fromPixel(10);
+        const snapHelper = (origin, length, useOrigin, dests) => {
+            let ret = [false];
+            for(let i = 0; i < dests.length; i++) {
+                const dest = dests[i];
+                const offset = origin + (useOrigin ? 0 : length);
+                if(offset >= dest - snapDist && offset <= dest + snapDist)
+                    ret = [true,
+                        useOrigin ? dest : origin,
+                        useOrigin ? (origin - dest + length) : (dest - origin)];
+            }
+            return ret;
+        };
+        const tbDests = [];
+        const lrDests = [];
+        const ww = Rem.fromPixel(window.innerWidth);
+        const wh = Rem.fromPixel(window.innerHeight);
+        for(const window1 of Object.values(this.windows)) {
+            if(window1 === window) continue;
+            const top1 = Rem.fromString(window1.element.style.top);
+            const left1 = Rem.fromString(window1.element.style.left);
+            tbDests.push(top1, top1 + Rem.fromString(window1.element.style.height));
+            lrDests.push(left1, left1 + Rem.fromString(window1.element.style.width));
+        }
+        const tDests = [0, ...tbDests];
+        const bDests = [wh, ...tbDests];
+        const lDests = [0, ...lrDests];
+        const rDests = [ww, ...lrDests];
+
+        let changed = false;
+        this._stopResize();
+        this._resizeHandler = setInterval((() => {
+            const dx = mouseX - mouseX0;
+            const dy = mouseY - mouseY0;
+            changed = changed || (dx !== 0 || dy !== 0);
+            if(!changed) return;
+
+            // 0,0 = t,l only snap t,l
+            // 1,0 = t,h only snap t,h
+            // -1, 0 = h only snap h
+            // 0,1 = l,w only snap l,w
+            // 0,-1 = w only
+            // 1,1 = t,h,w,l
+            // -1,-1 = h,w
+            // (tbWise === 1 or 0 && lrWise === 0) lrWise !== 0 && tbWise === 1
+
+            // tbWise === 0 && lrWise !== -1 => l
+            // tbWise !== 0 => h
+            // lrWise === 0 && tbWise !== -1 => t
+            // lrWise !== 0 => w
+            let [top1, left1, width1, height1] = [top0, left0, width0, height0];
+            const tok = lrWise === 0 ? tbWise >= 0 : tbWise === 1;
+            const lok = tbWise === 0 ? lrWise >= 0 : lrWise === 1;
+            const wok = lrWise !== 0;
+            const hok = tbWise !== 0;
+            const move = tbWise === 0 && lrWise === 0;
+
+            // class
+            el.classList.add(move ? "in-move" : "in-resize");
+
+            top1 += (tok || move) ? dy : 0;
+            left1 += (lok || move) ? dx : 0;
+            width1 += wok ? (lrWise !== -1 ? -dx : dx) : 0;
+            height1 += hok ? (tbWise !== -1 ? -dy : dy) : 0;
+
+            if(tok || hok) {
+                const [ts, to, tl] = snapHelper(top1, height1, true, tDests);
+                const [bs, bo, bl] = snapHelper(top1, height1, false, bDests);
+                let o = top1, l = height1;
+                // Top takes priority
+                if(bs) {o = bo; l = bl;}
+                if(ts) {o = to; l = tl;}
+                if(tok) top1 = o;
+                if(hok) height1 = l;
+            }
+            if(lok || wok) {
+                const [ls, lo, ll] = snapHelper(left1, width1, true, lDests);
+                const [rs, ro, rl] = snapHelper(left1, width1, false, rDests);
+                let o = left1, l = width1;
+                // Left takes priority
+                if(rs) {o = ro; l = rl;}
+                if(ls) {o = lo; l = ll;}
+                if(lok) left1 = o;
+                if(wok) width1 = l;
+            }
+
+            el.style.top = Rem.toString(top1);
+            el.style.left = Rem.toString(left1);
+            el.style.width = Rem.toString(width1);
+            el.style.height = Rem.toString(height1);
+        }).bind(this), 16);
+    }
+}
+
+let w1 = new Window({
+    top: 11,
+    left: 1,
+    width: 5,
+    height: 6,
+    xOffset: 0,
+    yOffset: 0
+});
+let w2 = new Window({
+    top: 6,
+    left: 7,
+    width: 5,
+    height: 6,
+    xOffset: 0,
+    yOffset: 0
+});
+document.addEventListener("mouseup", () => {
+    Window._stopResize();
+});
+
 const btnDebugAdd = document.getElementById("btn-debug-add");
 
 const defaults = {
@@ -487,11 +908,6 @@ const hasParentSelector = (elem, selector) => {
     return false;
 };
 
-const createElement = (tag, ...classes) => {
-    const element = document.createElement(tag);
-    element.classList.add(...classes);
-    return element;
-};
 
 // Menu
 const ctxMenu = document.getElementById("context-menu");
@@ -582,30 +998,6 @@ window.addEventListener("resize", (event) => {
     }, 100);
 });
 
-// Mouse tracker
-let mouseX = 0;
-let mouseY = 0;
-let mouseThrottled = false;
-let mouseHideHandler = null;
-const mouseHandler = (event) => {
-    if(mouseThrottled) return;
-    mouseThrottled = true;
-    document.body.classList.remove("still-cursor");
-    mouseX = event.pageX;
-    mouseY = event.pageY;
-    // Hiding cursor
-    if(mouseHideHandler !== null) clearTimeout(mouseHideHandler);
-    mouseHideHandler = setTimeout(((x, y) => {
-        if(mouseX === x && mouseY === y) {
-            document.body.classList.add("still-cursor");
-        }
-    }).bind(null, mouseX, mouseY), 3000);
-    //
-    setTimeout(() => {
-        mouseThrottled = false;
-    }, 16);
-};
-document.addEventListener("mousemove", mouseHandler);
 
 // Stream-related
 
