@@ -1415,7 +1415,7 @@ const defaultTwitchOptions = {
     volume: 0.5,
     quality: "auto",
     maximizedVolume: 1,
-    maximizedQuality: "auto"
+    maximizedQuality: "chunked"
 };
 const twitchComponents = {};
 const interpretTwitchComponents = (serialization) => {
@@ -1443,6 +1443,9 @@ const addTwitchComponent = (win, channel, chat, options) => {
         };
         player.addEventListener("Twitch.Player.READY", () => {
             setOptions();
+            console.log(player.getEnded());
+            window.temp1 = window.temp1 || [];
+            window.temp1.push(player);
             if(player.getEnded()) win.element.classList.add("twitch-offline");
         });
         player.addEventListener("Twitch.Player.ONLINE", () => {
