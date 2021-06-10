@@ -746,7 +746,7 @@ class Window {
         this.focus();
 
         // Maximize
-        this.maximize(overrides.xMaximized, overrides.yMaximized);
+        if(overrides.xMaximized || overrides.yMaximized) this.maximize(overrides.xMaximized, overrides.yMaximized);
 
         // Genenral properties
         this.anchorPosition = Window.anchorPositionOf(this.rect(), Rem.fromPixel(window.innerWidth), Rem.fromPixel(window.innerHeight));
