@@ -1340,7 +1340,8 @@ btnExitFullscreen.addEventListener("mouseup", (ev) => {
 });
 btnUnmuteAll.addEventListener("mouseup", (ev) => {
     for(const win of Window.windows.values()) {
-        twitchPlayers[win.id].setMuted(false);
+        if(win.id in twitchPlayers)
+            twitchPlayers[win.id].setMuted(false);
     }
 });
 btnGitHub.addEventListener("mouseup", (ev) => {
