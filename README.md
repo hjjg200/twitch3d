@@ -7,7 +7,7 @@ Watch multiple streams and move or scale them as you please.
 - Embedded Twitch players tend to show some purple screen due to Twitch's embedding policies. https://discuss.dev.twitch.tv/t/getting-a-message-on-my-embeds-that-goes-away-after-a-while/29592
 
 ## TODO
-- [ ] Make `Rem` class for clean px and rem management
+- [x] Make `Rem` class for clean px and rem management
     - `Rem.pixels()`
     - `static Rem.fromPixels(px)`
 - [ ] Make `Window` class for window management
@@ -24,8 +24,7 @@ Watch multiple streams and move or scale them as you please.
     - `WindowMoveEvent`, `WindowResizeEvent`
     - `Window.element()`
         - Element id: `window-1`, `window-2` ...
-- [ ] Chat support
-- [ ] Change top and left for new windows as new windows are added
+- [x] Chat support
 - [ ] Make offline channels transparent when cursor is still
 - [ ] Remember volume and quality when maximized and normal separately
 - [ ] Change from non-interactive iframe to interactive embedded players

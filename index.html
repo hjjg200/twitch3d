@@ -551,7 +551,7 @@ class DLL {
         return Object.values(this._map).map((v) => v.value);
     }
     remove(key) {
-        const node = this.get(key);
+        const node = this._map[key];
         const next = node.next;
         const prev = node.prev;
         if(next !== null) next.prev = prev;
@@ -560,7 +560,7 @@ class DLL {
         delete this._map[key];
     }
     get(key) {
-        return this._map[key];
+        return this._map[key].value;
     }
     put(key, value) {
         const oldHead = this.head;
@@ -585,10 +585,19 @@ class Window {
     static newId() {
         return `window-${(new Date()).getTime()}-${this.autoIncrement++}`;
     }
+    static overrideFallback = {
+        id: null,
+        connectedTo: null,
+        xMaximized: false,
+        yMaximized: false,
+        anchor: null,
+        anchorPosition: null
+    };
 
-    constructor({top, left, width, height}) {
+    constructor({top, left, width, height}, overrides) {
         // TODO: create window
-        const id = Window.newId();
+        overrides = {...Window.overrideFallback, ...overrides};
+        const id = overrides.id || Window.newId();
         this.element = createElement("div", "window");
         this.element.id = id;
         this.element.style.top = Rem.toString(top);
@@ -596,6 +605,8 @@ class Window {
         this.element.style.width = Rem.toString(width);
         this.element.style.height = Rem.toString(height);
         this.element.style.zIndex = `${Window.windows.length + Window.baseZIndex}`;
+        this.addEventListener = this.element.addEventListener.bind(this.element);
+        this.dispatchEvent = this.element.dispatchEvent.bind(this.element);
         //  div.window
         //      div.window-relative
         //          div.window-content
@@ -734,10 +745,21 @@ class Window {
         Window.windows.put(id, this);
         this.focus();
 
+        // Maximize
+        this.maximize(overrides.xMaximized, overrides.yMaximized);
+
         // Genenral properties
         this.anchorPosition = Window.anchorPositionOf(this.rect(), Rem.fromPixel(window.innerWidth), Rem.fromPixel(window.innerHeight));
-        this.group = null;
-        this.connectedTo = {};
+        this.connectedTo = overrides.connectedTo || {};
+        [this.tbAnchor, this.lbAnchor] = overrides.anchor || [0, 0];
+        const [ww, wh] = windowDimensions();
+        this.anchorPosition = overrides.anchorPosition || Window.anchorPositionOf(this.rect(), ww, wh);
+
+        //
+        this.addEventListener("change", () => {
+            Window.storeSerialization();
+        });
+        this.dispatchEvent(new Event("change"));
 
     }
     get id() {
@@ -749,11 +771,14 @@ class Window {
     close() {
         Window.windows.remove(this.id);
         this.element.parentNode.removeChild(this.element);
+
+        this.dispatchEvent(new Event("change"));
     }
     static fullyMaximizedWindow = null;
     maximize(xAxis/*: boolean*/, yAxis/*: boolean*/) {
-        if(this.isMaximized()) {
+        if(this.isMaximized(false)) {
             this.unmaximize();
+            this.dispatchEvent(new Event("change"));
             return;
         }
         if(xAxis && yAxis) {
@@ -765,12 +790,18 @@ class Window {
         this.element.classList.add("maximized");
         xAxis && this.element.classList.add("maximized-xAxis");
         yAxis && this.element.classList.add("maximized-yAxis");
+        this.dispatchEvent(new Event("change"));
+        this.dispatchEvent(new Event("maximize"));
     }
-    isMaximized() {
-        return this.element.matches(".maximized");
+    isMaximized(fully) {
+        return fully
+            ? this.element.matches(".maximized-xAxis.maximized-yAxis")
+            : this.element.matches(".maximized");
     }
     unmaximize() {
         this.element.classList.remove("maximized", "maximized-xAxis", "maximized-yAxis");
+        this.dispatchEvent(new Event("change"));
+        this.dispatchEvent(new Event("maximize"));
     }
     focus() {
         // Move top level
@@ -838,8 +869,8 @@ class Window {
         const visit = (win0) => {
             if(win0.id in visited) return;
             visited[win0.id] = win0;
-            for(const win1 of Object.values(win0.connectedTo)) {
-                visit(win1);
+            for(const id1 of Object.keys(win0.connectedTo)) {
+                visit(Window.windows.get(id1));
             }
         };
         visit(this);
@@ -878,6 +909,50 @@ class Window {
             right: ww - (rect.left + rect.width)         /* REM */
         };
     }
+    static storeSerialization() {
+        const serialization = this.serialize();
+        localStorage.setItem("t3d-windows", serialization);
+    }
+    static serialize() {
+        const ary = [];
+        let n = this.windows.head;
+        while(n !== null) {
+            const v = n.value;
+            ary.push({
+                id: v.id,
+                top: Rem.fromString(v.element.style.top),
+                left: Rem.fromString(v.element.style.left),
+                width: Rem.fromString(v.element.style.width),
+                height: Rem.fromString(v.element.style.height),
+                connectedTo: v.connectedTo,
+                xMaximized: v.element.matches(".maximized-xAxis"),
+                yMaximized: v.element.matches(".maximized-yAxis"),
+                anchor: v.anchor,
+                anchorPosition: v.anchorPosition
+            });
+            n = n.prev;
+        }
+        return JSON.stringify(ary.reverse());
+    }
+    static interpretSerialization(serialization) {
+        const ary = JSON.parse(serialization);
+        for(let i = 0; i < ary.length; i++) {
+            const each = ary[i];
+            new Window({
+                top: each.top,
+                left: each.left,
+                width: each.width,
+                height: each.height,
+            }, {
+                id: each.id,
+                connectedTo: each.connectedTo,
+                xMaximized: each.xMaximized,
+                yMaximized: each.yMaximized,
+                anchor: each.anchor,
+                anchorPosition: each.anchorPosition
+            });
+        }
+    }
     static _resizeHandler = null;
     static _minWidth = 9;
     static _minHeight = 6;
@@ -902,7 +977,7 @@ class Window {
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
         const top0 = rect0.y; // Get the shown position
-        const left0 = (win.isMaximized() ? mouseX0 - width0/2 : rect0.x); // When maximized get middle position
+        const left0 = (win.isMaximized(false) ? mouseX0 - width0/2 : rect0.x); // When maximized get middle position
         const connectedTo0 = {...win.connectedTo};
         const snapDist = Rem.fromPixel(10);
         const snapDgnDist = 1.41 * snapDist * 3; // Diagnoal distance is more generous
@@ -952,6 +1027,7 @@ class Window {
             }
             //
             Window.hideConnectionsIndicator();
+            win.dispatchEvent(new Event("change"));
         }).bind(this);
         this._resizeHandler = setInterval((() => {
             const dx = mouseX - mouseX0;
@@ -960,8 +1036,8 @@ class Window {
             changed = changed || (dx !== 0 || dy !== 0);
             if(!changed) return;
             farthest = Math.max(farthest, d);
-            if(win.isMaximized() && farthest <= ignoreMaximizedThreshold) return;
-            if(win.isMaximized()) win.unmaximize();
+            if(win.isMaximized(false) && farthest <= ignoreMaximizedThreshold) return;
+            if(win.isMaximized(false)) win.unmaximize();
             // TODO: xAxis maximized left
 
             // 0,0 = t,l only snap t,l
@@ -1067,17 +1143,18 @@ class Window {
             win.anchorPosition = Window.anchorPositionOf(rect1, ww, wh);
 
             // Connections
-            for(const win1 of Object.values({...connectedTo0, ...win.connectedTo})) {
+            for(const id1 of Object.keys({...connectedTo0, ...win.connectedTo})) {
+                const win1 = Window.windows.get(id1);
                 if(win.distanceTo(win1) === 0) {
-                    win.connectedTo[win1.id] = win1;
-                    win1.connectedTo[win.id] = win;
+                    win.connectedTo[win1.id] = null;
+                    win1.connectedTo[win.id] = null;
                 } else {
                     delete win.connectedTo[win1.id];
                     delete win1.connectedTo[win.id];
                 }
             }
             if(connectCandidate !== null && connectCandidate.distanceTo(win) === 0) {
-                win.connectedTo[connectCandidate.id] = connectCandidate;
+                win.connectedTo[connectCandidate.id] = null;
             }
             if(Object.keys(win.connectedTo).length > 0) {
                 Window.showConnectionsIndicator(win.connections());
@@ -1186,6 +1263,7 @@ window.addEventListener("resize", () => {
             }
         }
 
+        Window.storeSerialization();
         [ww0, wh0] = [ww1, wh1];
     }, 16);
 });
@@ -1276,11 +1354,7 @@ document.addEventListener("fullscreenchange", (ev) => {
             width: 32,
             height: 18
         });
-        const player = new Twitch.Player(streamWin.contentElement.id, {
-            channel,
-            parent: [window.location.hostname]
-        });
-        streamWin.setTitle(`${channel}`);
+        addTwitchComponent(streamWin, channel, false);
         if(withChat.checked === true) {
             const chatWin = new Window({
                 top: o_mouseY + 2,
@@ -1288,10 +1362,7 @@ document.addEventListener("fullscreenchange", (ev) => {
                 width: 18,
                 height: 30
             });
-            chatWin.setTitle(`${channel}`);
-            const iframe = createElement("iframe");
-            iframe.src = `https://www.twitch.tv/embed/${streamer.value}/chat?parent=${window.location.hostname}`;
-            chatWin.contentElement.appendChild(iframe);
+            addTwitchComponent(chatWin, channel, true);
         }
         // Reset
         streamer.value = "";
@@ -1334,54 +1405,91 @@ document.addEventListener("mouseover", (ev) => {
     }
 });
 
-//////////////////////////////
-
-const updateStreamsCache = () => {
-    const data = [];
-    const streams = document.querySelectorAll(".stream");
-    for(let i = 0; i < streams.length; i++) {
-        const stream = streams[i];
-        data.push({
-            streamer: stream.getAttribute("data-streamer"),
-            options: {
-                streamWidth: stream.style.width,
-                streamHeight: stream.style.height,
-                streamTop: stream.style.top,
-                streamLeft: stream.style.left,
-                streamZIndex: stream.style.zIndex,
-                streamMaximized: maximizedStream === stream,
-                streamTransform: stream.style.transform,
-                streamLastBottom: stream.getAttribute("data-last-bottom"),
-                streamLastRight: stream.getAttribute("data-last-right"),
-                streamLastMT: stream.getAttribute("data-last-mt"),
-                streamLastML: stream.getAttribute("data-last-ml")
-            }
-        });
+// Twitch methods
+const defaultTwitchOptions = {
+    volume: 0.5,
+    quality: "Auto",
+    maximizedVolume: 1,
+    maximizedQuality: "Auto"
+};
+const twitchComponents = {};
+const interpretTwitchComponents = (serialization) => {
+    const obj = JSON.parse(serialization);
+    for(const key of Object.keys(obj)) {
+        const each = obj[key];
+        const win = Window.windows.get(key);
+        if(win === null) return false;
+        addTwitchComponent(win, each.channel, each.chat, each.options);
     }
-    localStorage.setItem("t3d-data", JSON.stringify(data));
+    return true;
+};
+const addTwitchComponent = (win, channel, chat, options) => {
+    const id = win.contentElement.id;
+    win.setTitle(`${channel}`);
+    options = {...defaultTwitchOptions, ...options};
+    if(!chat) {
+        const player = new Twitch.Player(id, {
+            channel,
+            parent: [window.location.hostname]
+        });
+        const setOptions = () => {
+            player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
+            player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
+        };
+        setOptions();
+        win.addEventListener("maximize", () => {
+            setOptions();
+        });
+    } else {
+        const iframe = createElement("iframe");
+        iframe.src = `https://www.twitch.tv/embed/${streamer.value}/chat?parent=${window.location.hostname}`;
+        win.contentElement.appendChild(iframe);
+    }
+    twitchComponents[win.id] = {
+        channel,
+        chat,
+        options
+    };
+
+    localStorage.setItem("t3d-twitch", JSON.stringify(twitchComponents));
 };
 
-const addStream = (streamer, options) => {
+/*
 
-    //
-    title.textContent = streamer;
-    iframe.src = `https://player.twitch.tv/?muted=false&channel=${streamer}&parent=${window.location.hostname}`;
-    iframe.allowfullscreen = "false";
-
-    // Add to local storage
-    updateStreamsCache();
-};
-
-// Read data
 {
-    const data = JSON.parse(localStorage.getItem("t3d-data"));
-    if(data !== null) {
-        for(let i = 0; i < data.length; i++) {
-            addStream(data[i].streamer, {...defaults, ...data[i].options});
+    windows: [
+        // from dll.head to tail reversed
+        {
+            id: ...,
+            top: ...,
+            left: ...,
+            width: ...,
+            height: ...,
+            connectedTo: [...ids],
+            xMaximized: false,
+            yMaximized: false
+        }
+    ],
+    windowsTwitch: {
+        "window-id": {
+            channel: "...",
+            chat: false,
+            volume: 0.0,
+            quality: "...",
+            maximizedVolume: 0.0,
+            maximizedQuality: "..."
         }
     }
 }
 
+*/
+
+{
+    const t3dWindows = localStorage.getItem("t3d-windows");
+    if(t3dWindows !== null) Window.interpretSerialization(t3dWindows);
+    const t3dTwitch = localStorage.getItem("t3d-twitch");
+    if(t3dTwitch !== null) interpretTwitchComponents(t3dTwitch);
+}
 
         </script>
     </body>
