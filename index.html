@@ -440,6 +440,9 @@ body:not(.still-cursor) .window.focused {
                         <button id="btn-exit-fullscreen">Exit Fullscreen</button>
                     </li>
                     <li>
+                        <button id="btn-unmute-all">Unmute All</button>
+                    </li>
+                    <li>
                         <button id="btn-github">GitHub</button>
                     </li>
                 </ul>
@@ -1300,6 +1303,7 @@ const modalAddStream = document.getElementById("modal-add-stream");
 const btnAddStream = document.getElementById("btn-add-stream");
 const btnFullscreen = document.getElementById("btn-fullscreen");
 const btnExitFullscreen = document.getElementById("btn-exit-fullscreen");
+const btnUnmuteAll = document.getElementById("btn-unmute-all");
 const btnGitHub = document.getElementById("btn-github");
 document.addEventListener("contextmenu", (ev) => {
     ev.preventDefault();
@@ -1333,6 +1337,11 @@ btnFullscreen.addEventListener("mouseup", (ev) => {
 });
 btnExitFullscreen.addEventListener("mouseup", (ev) => {
     document.exitFullscreen();
+});
+btnUnmuteAll.addEventListener("mouseup", (ev) => {
+    for(const win of Window.windows.values()) {
+        twitchPlayers[win.id].setMuted(false);
+    }
 });
 btnGitHub.addEventListener("mouseup", (ev) => {
     window.open("https://github.com/hjjg200/twitch3d", "_blank");
@@ -1418,6 +1427,7 @@ const defaultTwitchOptions = {
     maximizedQuality: "chunked"
 };
 const twitchComponents = {};
+const twitchPlayers = {};
 const interpretTwitchComponents = (serialization) => {
     const obj = JSON.parse(serialization);
     for(const key of Object.keys(obj)) {
@@ -1437,13 +1447,13 @@ const addTwitchComponent = (win, channel, chat, options) => {
             channel,
             parent: [window.location.hostname]
         });
-        const setOptions = () => {
-            player.setMuted(false);
+        player.setOptions = () => {
             player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
             player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
         };
+        twitchPlayers[win.id] = player;
         player.addEventListener(Twitch.Player.READY, () => {
-            setOptions();
+            player.setOptions();
         });
         player.addEventListener(Twitch.Player.ONLINE, () => {
             win.element.classList.remove("twitch-offline");
@@ -1455,7 +1465,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
             win.element.classList.add("twitch-offline");
         });
         win.addEventListener("maximize", () => {
-            setOptions();
+            player.setOptions();
         });
     } else {
         const iframe = createElement("iframe");
