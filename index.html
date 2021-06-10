@@ -1338,7 +1338,7 @@ document.addEventListener("contextmenu", (ev) => {
     ctxMenu.style.left = Rem.toString(mouseX + Rem.fromPixel(3));
 });
 document.addEventListener("mousedown", (ev) => {
-    // disableIframeStreams();
+    disableIframeStreams();
     if(!isContainedIn(ev.target, ctxMenu)) {
         ctxMenu.style.display = "";
     }
@@ -1431,6 +1431,7 @@ const disableIframes = () => {
         el.classList.remove("iframe-enabled");
     }
     iframeEnabledWindow = null;
+    storeTwitchSerialization();
 }
 
 const enableIframe = (win) => {
@@ -1455,6 +1456,9 @@ const defaultTwitchOptions = {
 };
 const twitchComponents = {};
 const twitchPlayers = {};
+const storeTwitchSerialization = () => {
+    localStorage.setItem("t3d-twitch", JSON.stringify(twitchComponents));
+};
 const interpretTwitchComponents = (serialization) => {
     const obj = JSON.parse(serialization);
     for(const key of Object.keys(obj)) {
@@ -1505,8 +1509,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
         chat,
         options
     };
-
-    localStorage.setItem("t3d-twitch", JSON.stringify(twitchComponents));
+    storeTwitchSerialization();
 };
 
 /*
