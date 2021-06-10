@@ -641,9 +641,10 @@ class Window {
     static groups = [];
     static autoIncrement = 0;
     static newId() {
-        return `window-${this.autoIncrement++}`;
+        return `window-${(new Date()).getTime()}-${this.autoIncrement++}`;
     }
-    constructor({top, left, width, height, xOffset, yOffset}) {
+
+    constructor({top, left, width, height}) {
         // TODO: create window
         const id = Window.newId();
         this.element = createElement("div", "window");
@@ -829,9 +830,6 @@ class Window {
     blur() {
         this.element.classList.remove("focused");
     }
-    reposition() {
-
-    }
     rect() {
         const rect = this.element.getBoundingClientRect();
         return {
@@ -863,11 +861,11 @@ class Window {
         const rect1 = win1.rect();
         // tb distance
         let tb = 0;
-        if(rect1.bottom < rect0.top) tb = rect0.top - rect1.bottom;
+        if(rect1.bottom < rect0.top)      tb = rect0.top - rect1.bottom;
         else if(rect1.top > rect0.bottom) tb = rect1.top - rect0.bottom;
         // lr distance
         let lr = 0;
-        if(rect1.right < rect0.left) lr = rect0.left - rect1.right;
+        if(rect1.right < rect0.left)      lr = rect0.left - rect1.right;
         else if(rect1.left > rect0.right) lr = rect1.left - rect0.right;
         //
         return Math.pow(tb*tb + lr*lr, 0.5);
@@ -983,10 +981,7 @@ class Window {
             if(!changed) return;
             farthest = Math.max(farthest, d);
             if(win.isMaximized() && farthest <= ignoreMaximizedThreshold) return;
-            if(win.isMaximized()) {
-                win.unmaximize();
-                
-            }
+            if(win.isMaximized()) win.unmaximize();
             // TODO: xAxis maximized left
 
             // 0,0 = t,l only snap t,l
@@ -1017,28 +1012,59 @@ class Window {
             width1 += wok ? (lrWise !== -1 ? -dx : dx) : 0;
             height1 += hok ? (tbWise !== -1 ? -dy : dy) : 0;
 
-            connectCandidate = null;
-            if(tok || hok) {
-                const [ts, td, town] = snapHelper(top1, tDests);
-                const [bs, bd, bown] = snapHelper(top1 + height1, bDests);
-                let d = 0;
-                // Top takes priority
-                if(bs) {d = bd; connectCandidate = bown;}
-                if(ts) {d = td; connectCandidate = town;}
-                if(tok) top1 += d;
-                if(hok) height1 += tok ? -d : d;
-            }
-            if(lok || wok) {
-                const [ls, ld, lown] = snapHelper(left1, lDests);
-                const [rs, rd, rown] = snapHelper(left1 + width1, rDests);
-                let d = 0;
-                // Left takes priority
-                if(rs) {d = rd; connectCandidate = rown;}
-                if(ls) {d = ld; connectCandidate = lown;}
-                if(lok) left1 += d;
-                if(wok) width1 += lok ? -d : d;
-            }
+            // Out of boundary check
+            const threshold = 2;
+            if(top1 > wh - threshold) top1 = wh - threshold;
+            if(top1 < 0) top1 = 0;
+            if(left1 > ww - threshold) left1 = ww - threshold;
+            if(left1 + width1 < threshold) left1 = threshold - width1;
 
+            // Snapping
+            connectCandidate = null;
+            const ratioSnapThreshold = 2; /* REM */
+            const ratioUnitLength = (height1 + width1) / (16+9);
+            const snapRatio = 16 / 9;
+            const ratioLowerBound = (ratioUnitLength*16 - ratioSnapThreshold) / (ratioUnitLength*9);
+            const ratioUpperBound = (ratioUnitLength*16 + ratioSnapThreshold) / (ratioUnitLength*9);
+            const ratio1 = width1 / height1;
+            if(ratio1 <= ratioUpperBound
+                && ratio1 >= ratioLowerBound
+                && !move) {
+                // Ratio snapping takes priority
+                if(wok) {
+                    // Height is standard
+                    const oldw = width1;
+                    width1 = height1 * snapRatio;
+                    if(lok) left1 += oldw - width1;
+                } else {
+                    const oldh = height1;
+                    height1 = width1 / snapRatio;
+                    if(hok) top1 += oldh - height1;
+                }
+            } else {
+                // Less priority
+                if(tok || hok) {
+                    const [ts, td, town] = snapHelper(top1, tDests);
+                    const [bs, bd, bown] = snapHelper(top1 + height1, bDests);
+                    let d = 0;
+                    // Top takes priority
+                    if(bs) {d = bd; connectCandidate = bown;}
+                    if(ts) {d = td; connectCandidate = town;}
+                    if(tok) top1 += d;
+                    if(hok) height1 += tok ? -d : d;
+                }
+                if(lok || wok) {
+                    const [ls, ld, lown] = snapHelper(left1, lDests);
+                    const [rs, rd, rown] = snapHelper(left1 + width1, rDests);
+                    let d = 0;
+                    // Left takes priority
+                    if(rs) {d = rd; connectCandidate = rown;}
+                    if(ls) {d = ld; connectCandidate = lown;}
+                    if(lok) left1 += d;
+                    if(wok) width1 += lok ? -d : d;
+                }
+            }
+       
             el.style.top = Rem.toString(top1);
             el.style.left = Rem.toString(left1);
             el.style.width = Rem.toString(width1);
@@ -1189,6 +1215,7 @@ window.addEventListener("resize", () => {
     }, 100);
 });
 
+
 //////////////////////////////
 const btnDebugAdd = document.getElementById("btn-debug-add");
 
@@ -1206,33 +1233,6 @@ const defaults = {
     streamLastRight: "",
     streamLastMT: "",
     streamLastML: ""
-};
-
-const pxToRem = (px) => {
-    return px / parseFloat(getComputedStyle(document.documentElement).fontSize);
-};
-
-const remToPx = (rem) => {
-    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
-};
-
-const readRem = (sty) => {
-    const str = sty.replace("rem", "");
-    return parseFloat(str);
-};
-
-const readTranslateXY = (transform) => {
-    if(transform === "") return [0, 0];
-    const rmp = transform.slice(transform.indexOf("(") + 1, transform.indexOf(")"));
-    const xy = rmp.split(/\s*,\s*/g).map(readRem);
-    return xy;
-};
-
-const addPxToRem = (sty, px) => {
-    if(px === 0) return sty;
-    const p2r = pxToRem(px);
-    const fl = readRem(sty) + p2r;
-    return `${fl}rem`;
 };
 
 const hasParent = (elem, parent) => {
@@ -1303,74 +1303,6 @@ document.addEventListener("fullscreenchange", (ev) => {
     document.body.classList[document.fullscreenElement === null ? "remove" : "add"]("fullscreen");
 });
 
-const compensateTranslate = (stream) => {
-    const txy = readTranslateXY(stream.style.transform);
-    return [`${readRem(stream.style.top) + txy[1]}rem`, `${readRem(stream.style.left) + txy[0]}rem`];
-};
-const repositionStream = (stream) => {
-    const wh = pxToRem(window.innerHeight);
-    const ww = pxToRem(window.innerWidth);
-    const [top, left] = compensateTranslate(stream);
-    const bottom = wh - (readRem(top) + readRem(stream.style.height));
-    const right = ww - (readRem(left) + readRem(stream.style.width));
-    const mt = (readRem(top) + readRem(stream.style.height)/2) - wh/2;
-    const ml = (readRem(left) + readRem(stream.style.width)/2) - ww/2;
-    const lastBottom = readRem(stream.getAttribute("data-last-bottom"));
-    const lastRight = readRem(stream.getAttribute("data-last-right"));
-    const lastMT = readRem(stream.getAttribute("data-last-mt"));
-    const lastML = readRem(stream.getAttribute("data-last-ml"));
-    const xy = [0, 0];
-    const tbMin = Math.min(lastBottom, readRem(top), Math.abs(lastMT));
-    const lrMin = Math.min(lastRight, readRem(left), Math.abs(lastML));
-    if(tbMin === lastBottom) xy[1] = -(lastBottom - bottom);
-    else if(tbMin === Math.abs(lastMT)) xy[1] = (lastMT - mt);
-
-    if(lrMin === lastRight)  xy[0] = -(lastRight - right);
-    else if(lrMin === Math.abs(lastML)) xy[0] = (lastML - ml);
-
-    const txy = readTranslateXY(stream.style.transform);
-    stream.style.transform = `translate(${xy[0]+txy[0]}rem, ${xy[1]+txy[1]}rem)`;
-};
-
-// Stream-related
-
-const cleanupZIndex = () => {
-    const streams = document.querySelectorAll(".stream");
-    const map = {};
-    const ary = [];
-    for(const stream of streams.values()) {
-        const zi = stream.style.zIndex;
-        map[zi] = stream;
-        ary.push(parseInt(zi));
-    }
-    ary.sort();
-    for(let i = 0; i < ary.length; i++) {
-        map[`${ary[i]}`].style.zIndex = `${i + 1}`;
-    }
-};
-
-let focusedStream = null;
-let maximizedStream = null;
-
-const blurStream = (stream) => {
-    stream.classList.remove("focused");
-    focusedStream = null;
-};
-
-const focusStream = (stream) => {
-    if(focusedStream === stream) return;
-    let oldStream = null;
-    if(focusedStream !== null) {
-        oldStream = focusedStream;
-        blurStream(focusedStream);
-    }
-    focusedStream = stream;
-    stream.classList.add("focused");
-    stream.style.zIndex = "999";
-    if(oldStream !== null) stream.style.zIndex = `${parseInt(oldStream.style.zIndex) + 1}`;
-    cleanupZIndex();
-};
-
 let notInsideIframe = true;
 let iframeEnabledStream = null;
 const disableIframeStreams = () => {
@@ -1400,209 +1332,7 @@ document.addEventListener("mouseover", (ev) => {
     }
 });
 
-const unmaximizeStream = (stream) => {
-    stream.classList.remove("maximized");
-    maximizedStream = null;
-};
-
-const maximizeStream = (stream) => {
-    disableIframeStreams();
-    if(maximizedStream === stream) {
-        unmaximizeStream(stream);
-        return;
-    } else {
-        if(maximizedStream !== null) {
-            unmaximizeStream(maximizedStream);
-        }
-        maximizedStream = stream;
-        stream.classList.add("maximized");
-    }
-    updateStreamsCache();
-    cleanupZIndex();
-};
-
-const closeStream = (stream) => {
-    disableIframeStreams();
-    stream.parentNode.removeChild(stream);
-    updateStreamsCache();
-};
-
-const setLastBottomRight = (stream) => {
-    const [top, left] = [stream.style.top, stream.style.left];
-    const lb = pxToRem(window.innerHeight) - (readRem(top) + readRem(stream.style.height));
-    const lr = pxToRem(window.innerWidth) - (readRem(left) + readRem(stream.style.width));
-    const mt = (readRem(top) + readRem(stream.style.height)/2) - pxToRem(window.innerHeight / 2);
-    const ml = (readRem(left) + readRem(stream.style.width)/2) - pxToRem(window.innerWidth / 2);
-    stream.setAttribute("data-last-bottom", `${lb}rem`);
-    stream.setAttribute("data-last-right", `${lr}rem`);
-    stream.setAttribute("data-last-mt", `${mt}rem`);
-    stream.setAttribute("data-last-ml", `${ml}rem`);
-}
-
-const snapPixel = 10;
-const snapHelper = (origin, length, dest) => {
-    const dist = pxToRem(snapPixel);
-    if(origin + length >= dest - dist && origin + length <= dest + dist)
-        return [true, dest - length, dest - origin];
-    return [false];
-};
-const attemptSnap = (stream, top, left, height, width, tblr) => {
-    const nt = readRem(top);
-    const nl = readRem(left);
-    const nh = readRem(height);
-    const nw = readRem(width);
-    let bt = nt, bl = nl, bh = nh, bw = nw;
-    const wh = pxToRem(window.innerHeight);
-    const ww = pxToRem(window.innerWidth);
-
-    const tdests = [0];
-    const bdests = [wh];
-    const ldests = [0];
-    const rdests = [ww];
-    // Other streams
-    for(const rhs of document.querySelectorAll(".stream").values()) {
-        if(rhs === stream) continue;
-        const rt = readRem(rhs.style.top);
-        const rl = readRem(rhs.style.left);
-        tdests.push(rt, rt + readRem(rhs.style.height));
-        bdests.push(rt, rt + readRem(rhs.style.height));
-        ldests.push(rl, rl + readRem(rhs.style.width));
-        rdests.push(rl, rl + readRem(rhs.style.width));
-    }
-
-    const h = (origin, length, dests) => {
-        let ret = [false];
-        for(let i = 0; i < dests.length; i++) {
-            const [snapped, o, l] = snapHelper(origin, length, dests[i]);
-            if(snapped) ret = [snapped, o, l];
-        }
-        return ret;
-    };
-
-    const [tws, two, twl] = h(nt, 0, tdests);
-    if(tws) (bt = two) || tblr[0] && (bh = twl);
-    const [bws, bwo, bwl] = h(nt, nh, bdests);
-    if(bws) (bt = bwo) || tblr[1] && (bh = bwl);
-    const [lws, lwo, lwl] = h(nl, 0, ldests);
-    if(lws) (bl = lwo) || tblr[2] && (bw = lwl);
-    const [rws, rwo, rwl] = h(nl, nw, rdests);
-    if(rws) (bl = rwo) || tblr[3] && (bw = rwl);
-
-    return [`${bt}rem`, `${bl}rem`, `${bh}rem`, `${bw}rem`];
-};
-
-let moveHandlers = [];
-const startMove = (stream, event) => {
-    disableIframeStreams();
-    const startX = mouseX;
-    const startY = mouseY;
-    const [startTop, startLeft] = compensateTranslate(stream);
-    if(maximizedStream === stream) return;
-    stream.classList.add("in-move");
-    let changed = false;
-    moveHandlers.push(setInterval(() => {
-        const dx = mouseX - startX;
-        const dy = mouseY - startY;
-        const oldChanged = changed;
-        changed = changed || (dx !== 0 || dy !== 0);
-        if(changed !== oldChanged) stream.style.transform = "";
-        if(!changed) return;
-        const leftLowerCap = readRem(stream.style.width) - 2;
-        const leftUpperCap = pxToRem(window.innerWidth) - 2;
-        const topUpperCap = pxToRem(window.innerHeight) - 2;
-        let newTop = addPxToRem(startTop, dy);
-        let newLeft = addPxToRem(startLeft, dx);
-        newTop = readRem(newTop) < 0 ? "0rem" : newTop;
-        newTop = readRem(newTop) > topUpperCap ? `${topUpperCap}rem` : newTop;
-        newLeft = readRem(newLeft) < (-leftLowerCap) ? `${-leftLowerCap}rem` : newLeft;
-        newLeft = readRem(newLeft) > leftUpperCap ? `${leftUpperCap}rem` : newLeft;
-        [newTop, newLeft] = attemptSnap(stream, newTop, newLeft, stream.style.height, stream.style.width, [false, false, false, false]);
-        stream.style.top = newTop;
-        stream.style.left = newLeft;
-        setLastBottomRight(stream);
-    }, 16));
-};
-let resizeHandlers = [];
 const snapRatio = 16 / 9;
-const resizeSnapThreshold = 0.05;
-const startResize = (stream, tbWise, lrWise, event) => {
-    disableIframeStreams();
-    // tbWise: 1 = top, 0 = none, -1 = bottom
-    // lrWise: 1 = left, 0 = none, -1 = right
-    const startX = mouseX;
-    const startY = mouseY;
-    const [startTop, startLeft] = compensateTranslate(stream);
-    const startHeight = stream.style.height;
-    const startWidth = stream.style.width;
-    const minWidth = defaults.minWdith;
-    const minHeight = defaults.minHeight;
-    stream.classList.add("in-resize");
-    let changed = false;
-    resizeHandlers.push(setInterval(() => {
-        const dx = mouseX - startX;
-        const dy = mouseY - startY;
-        const oldChanged = changed;
-        changed = changed || (dx !== 0 || dy !== 0);
-        if(changed !== oldChanged) stream.style.transform = "";
-        if(!changed) return;
-        let newHeight = addPxToRem(startHeight, dy * (-tbWise));
-        let newWidth = addPxToRem(startWidth, dx * (-lrWise));
-        let newTop = addPxToRem(startTop, dy);
-        let newLeft = addPxToRem(startLeft, dx);
-
-        let f_nw = readRem(newWidth);
-        let f_nh = readRem(newHeight);
-        const ratio = f_nw / f_nh;
-        if(ratio <= snapRatio * (1+resizeSnapThreshold)
-            && ratio >= snapRatio * (1-resizeSnapThreshold)) {
-            if(lrWise !== 0 && tbWise === 0) {
-                f_nw = (f_nh / 9) * 16;
-                newWidth = `${f_nw}rem`;
-                newLeft = `${readRem(startLeft) - (f_nw - readRem(startWidth))}rem`;
-            } else {
-                f_nh = (f_nw / 16) * 9;
-                newHeight = `${f_nh}rem`;
-                newTop = `${readRem(startTop) - (f_nh - readRem(startHeight))}rem`;
-            }
-        }
-
-        if(readRem(newHeight) < readRem(minHeight)) {
-            newHeight = `${readRem(minHeight)}rem`;
-            newTop = `${readRem(startTop) + readRem(startHeight) - readRem(minHeight)}rem`;
-        }
-        if(readRem(newWidth) < readRem(minWidth)) {
-            newWidth = `${readRem(minWidth)}rem`;
-            newLeft = `${readRem(startLeft) + readRem(startWidth) - readRem(minWidth)}rem`;
-        }
-        [newTop, newLeft, newHeight, newWidth] = attemptSnap(stream, newTop, newLeft, newHeight, newWidth, [tbWise === 1, tbWise === -1, lrWise === 1, lrWise === -1]);
-        stream.style.height = newHeight;
-        stream.style.width = newWidth;
-        if(tbWise === 1) stream.style.top = newTop;
-        if(lrWise === 1) stream.style.left = newLeft;
-        setLastBottomRight(stream);
-    }, 16));
-};
-const stopMove = () => {
-    if(moveHandlers.length === 0) return;
-    for(const stream of document.querySelectorAll(".stream.in-move").values()) {
-        stream.classList.remove("in-move");
-    }
-    for(let i = 0; i < moveHandlers.length; i++) clearInterval(moveHandlers[i]);
-    moveHandlers = [];
-    updateStreamsCache();
-};
-const stopResize = () => {
-    if(resizeHandlers.length === 0) return;
-    for(const stream of document.querySelectorAll(".stream.in-resize").values()) {
-        stream.classList.remove("in-resize");
-    }
-    for(let i = 0; i < resizeHandlers.length; i++) clearInterval(resizeHandlers[i]);
-    resizeHandlers = [];
-    updateStreamsCache();
-};
-
-document.addEventListener("mouseup", stopMove);
-document.addEventListener("mouseup", stopResize);
 
 const updateStreamsCache = () => {
     const data = [];
