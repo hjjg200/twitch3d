@@ -464,6 +464,13 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 .window .corner-top-right {left: 100%;}
 .window .corner-bottom-right {left: 100%; top: 100%;}
 .window .corner-bottom-left {top: 100%;}
+
+#window-connections-indicator {
+    display: none;
+    position: absolute;
+    border: 2px solid yellow;
+    box-shadow: 0 0 0 2px yellow;
+}
         </style>
     </head>
     <body>
@@ -474,6 +481,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
                 <div class="frame frame-ralign">
                 </div>
             </div>
+            <div id="window-connections-indicator"></div>
             <div id="streams-container">
 
             </div>
@@ -752,6 +760,8 @@ class Window {
         // Genenral properties
         this.tbAnchor = 1; // 1: top, 0: middle top, -1: bottom
         this.lrAnchor = 1; // 1: left, 0: middle left, -1: right
+        this.group = null;
+        this.connectedTo = {};
 
         // Append
         this.element.appendChild(relative);
@@ -831,6 +841,18 @@ class Window {
         //
         return Math.pow(tb*tb + lr*lr, 0.5);
     }
+    connections() {
+        const visited = {};
+        const visit = (win0) => {
+            if(win0.id in visited) return;
+            visited[win0.id] = win0;
+            for(const win1 of Object.values(win0.connectedTo)) {
+                visit(win1);
+            }
+        };
+        visit(this);
+        return visited;
+    }
 
     // TODO: tbAnchor, lrAnchor
     // TODO: window groups
@@ -863,15 +885,19 @@ class Window {
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
         const [mouseX0, mouseY0] = [mouseX, mouseY];
+        const connectedTo0 = {...win.connectedTo};
 
         const snapDist = Rem.fromPixel(10);
+        const snapDgnDist = 1.41 * snapDist * 3; // Diagnoal distance is more generous
         const snapHelper = (origin, dests) => {
             // dir: -1=left or top, 1=right or bottom
             let ret = [false];
             for(let i = 0; i < dests.length; i++) {
-                const dest = dests[i];
+                const dest = dests[i].value;
+                const owner = dests[i].owner;
+                if(owner !== null && win.distanceTo(owner) > snapDgnDist) continue;
                 if(origin >= dest - snapDist && origin <= dest + snapDist)
-                    ret = [true, dest - origin];
+                    ret = [true, dest - origin, owner];
             }
             return ret;
         };
@@ -884,16 +910,17 @@ class Window {
             const rect1 = win1.rect();
             const top1 = rect1.top;
             const left1 = rect1.left;
-            tbDests.push(top1, top1 + rect1.height);
-            lrDests.push(left1, left1 + rect1.width);
+            tbDests.push({value: top1, owner: win1}, {value: top1 + rect1.height, owner: win1});
+            lrDests.push({value: left1, owner: win1}, {value: left1 + rect1.width, owner: win1});
         }
-        const tDests = [0, ...tbDests];
-        const bDests = [wh, ...tbDests];
-        const lDests = [0, ...lrDests];
-        const rDests = [ww, ...lrDests];
+        const tDests = [{value: 0, owner: null}, ...tbDests];
+        const bDests = [{value: wh, owner: null}, ...tbDests];
+        const lDests = [{value: 0, owner: null}, ...lrDests];
+        const rDests = [{value: ww, owner: null}, ...lrDests];
 
         const ignoreMaximizedThreshold = Rem.fromPixel(10);
 
+        let connectCandidate = null; // other window to stick to
         let changed = false;
         let farthest = 0;
         this.stopResize();
@@ -911,9 +938,6 @@ class Window {
             if(rect1.y <= 0)                      win.tbAnchor = 1;
             else if(rect1.y + rect1.height >= wh) win.tbAnchor = -1;
             else                                  win.tbAnchor = 0;
-
-            console.log(win.tbAnchor, win.lrAnchor);
-            // Set group
 
         }).bind(this);
         this._resizeHandler = setInterval((() => {
@@ -955,23 +979,24 @@ class Window {
             width1 += wok ? (lrWise !== -1 ? -dx : dx) : 0;
             height1 += hok ? (tbWise !== -1 ? -dy : dy) : 0;
 
+            connectCandidate = null;
             if(tok || hok) {
-                const [ts, td] = snapHelper(top1, tDests);
-                const [bs, bd] = snapHelper(top1 + height1, bDests);
+                const [ts, td, town] = snapHelper(top1, tDests);
+                const [bs, bd, bown] = snapHelper(top1 + height1, bDests);
                 let d = 0;
                 // Top takes priority
-                if(bs) {d = bd;}
-                if(ts) {d = td;}
+                if(bs) {d = bd; connectCandidate = bown;}
+                if(ts) {d = td; connectCandidate = town;}
                 if(tok) top1 += d;
                 if(hok) height1 += tok ? -d : d;
             }
             if(lok || wok) {
-                const [ls, ld] = snapHelper(left1, lDests);
-                const [rs, rd] = snapHelper(left1 + width1, rDests);
+                const [ls, ld, lown] = snapHelper(left1, lDests);
+                const [rs, rd, rown] = snapHelper(left1 + width1, rDests);
                 let d = 0;
                 // Left takes priority
-                if(rs) {d = rd;}
-                if(ls) {d = ld;}
+                if(rs) {d = rd; connectCandidate = rown;}
+                if(ls) {d = ld; connectCandidate = lown;}
                 if(lok) left1 += d;
                 if(wok) width1 += lok ? -d : d;
             }
@@ -980,7 +1005,54 @@ class Window {
             el.style.left = Rem.toString(left1);
             el.style.width = Rem.toString(width1);
             el.style.height = Rem.toString(height1);
+
+            // Connections
+            for(const win1 of Object.values({...connectedTo0, ...win.connectedTo})) {
+                if(win.distanceTo(win1) === 0) {
+                    win.connectedTo[win1.id] = win1;
+                    win1.connectedTo[win.id] = win;
+                } else {
+                    delete win.connectedTo[win1.id];
+                    delete win1.connectedTo[win.id];
+                }
+            }
+            if(connectCandidate !== null && connectCandidate.distanceTo(win) === 0) {
+                win.connectedTo[connectCandidate.id] = connectCandidate;
+            }
+            if(Object.keys(win.connectedTo).length > 0) {
+                Window.showConnectionsIndicator(win);
+            } else {
+                Window.hideConnectionsIndicator();
+            }
         }).bind(this), 16);
+    }
+    static showConnectionsIndicator(win) {
+        const rect = this.connectionsRect(win);
+        const gi = document.getElementById("window-connections-indicator");
+        gi.style.top = Rem.toString(rect.top);
+        gi.style.left = Rem.toString(rect.left);
+        gi.style.width = Rem.toString(rect.width);
+        gi.style.height = Rem.toString(rect.height);
+        gi.style.display = "block";
+    }
+    static hideConnectionsIndicator() {
+        const gi = document.getElementById("window-connections-indicator");
+        gi.style.display = "";
+    }
+    static connectionsRect(win0) {
+        const values = Object.values(win0.connections());
+        const rects = values.map(v => v.rect());
+        const rect = {
+            top: Math.min(...rects.map(v => v.top)),
+            left: Math.min(...rects.map(v => v.left)),
+            bottom: Math.max(...rects.map(v => v.bottom)),
+            right: Math.max(...rects.map(v => v.right)),
+            x: Math.min(...rects.map(v => v.x)),
+            y: Math.min(...rects.map(v => v.y))
+        };
+        rect.width = rect.right - rect.left;
+        rect.height = rect.bottom - rect.top;
+        return rect;
     }
 }
 
@@ -995,6 +1067,14 @@ let w1 = new Window({
 let w2 = new Window({
     top: 6,
     left: 7,
+    width: 15,
+    height: 6,
+    xOffset: 0,
+    yOffset: 0
+});
+let w3 = new Window({
+    top: 6,
+    left: 17,
     width: 15,
     height: 6,
     xOffset: 0,
