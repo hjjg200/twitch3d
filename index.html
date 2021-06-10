@@ -1439,6 +1439,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
         setOptions();
         win.addEventListener("maximize", () => {
             setOptions();
+            console.log(player.getQuality(), player.getVolume());
         });
     } else {
         const iframe = createElement("iframe");
