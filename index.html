@@ -1441,20 +1441,20 @@ const addTwitchComponent = (win, channel, chat, options) => {
             player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
             player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
         };
-        player.addEventListener("Twitch.Player.READY", () => {
+        player.addEventListener(Twitch.Player.READY, () => {
             setOptions();
             console.log(player.getEnded());
             window.temp1 = window.temp1 || [];
             window.temp1.push(player);
             if(player.getEnded()) win.element.classList.add("twitch-offline");
         });
-        player.addEventListener("Twitch.Player.ONLINE", () => {
+        player.addEventListener(Twitch.Player.ONLINE, () => {
             win.element.classList.remove("twitch-offline");
         });
-        player.addEventListener("Twitch.Player.PLAY", () => {
+        player.addEventListener(Twitch.Player.PLAY, () => {
             win.element.classList.remove("twitch-offline");
         });
-        player.addEventListener("Twitch.Player.OFFLINE", () => {
+        player.addEventListener(Twitch.Player.OFFLINE, () => {
             win.element.classList.add("twitch-offline");
         });
         win.addEventListener("maximize", () => {
