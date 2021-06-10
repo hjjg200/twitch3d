@@ -1438,15 +1438,12 @@ const addTwitchComponent = (win, channel, chat, options) => {
             parent: [window.location.hostname]
         });
         const setOptions = () => {
+            player.setMuted(false);
             player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
             player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
         };
         player.addEventListener(Twitch.Player.READY, () => {
             setOptions();
-            console.log(player.getEnded());
-            window.temp1 = window.temp1 || [];
-            window.temp1.push(player);
-            if(player.getEnded()) win.element.classList.add("twitch-offline");
         });
         player.addEventListener(Twitch.Player.ONLINE, () => {
             win.element.classList.remove("twitch-offline");
