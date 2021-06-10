@@ -369,7 +369,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 .window.maximized {
     transform: none !important;
 }
-.window.maximied-xAxis.maximized-yAxis {
+.window.maximized-xAxis.maximized-yAxis {
     z-index: 0 !important;
 }
 .window.maximized-xAxis {
@@ -419,7 +419,9 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 }
 .window-controls button {
     background: purple;
+    border-radius: 0;
     width: 2rem;
+    height: 100%;
 }
 .window .corner {
     background: rgba(255, 0, 0, 0.5);
@@ -689,6 +691,12 @@ class Window {
         btnClose.addEventListener("mouseup", (() => {
             this.close();
         }).bind(this));
+        btnMaximize.addEventListener("mouseup", (() => {
+            this.maximize(true, true);
+        }).bind(this));
+        title.addEventListener("dblclick", (() => {
+            this.maximize(true, true);
+        }).bind(this));
 
         controls.appendChild(btnMaximize);
         controls.appendChild(btnClose);
@@ -757,17 +765,19 @@ class Window {
         this.contentElement = createElement("div", "window-content");
         relative.appendChild(this.contentElement);
 
-        // Genenral properties
-        this.tbAnchor = 1; // 1: top, 0: middle top, -1: bottom
-        this.lrAnchor = 1; // 1: left, 0: middle left, -1: right
-        this.group = null;
-        this.connectedTo = {};
-
         // Append
         this.element.appendChild(relative);
         streamsContainer.appendChild(this.element);
         Window.windows.put(id, this);
         this.focus();
+
+        // Genenral properties
+        // 1: top, 0: middle top, -1: bottom
+        // 1: left, 0: middle left, -1: right
+        [this.tbAnchor, this.lrAnchor] = [0, 0];
+        this.setAnchorPosition();
+        this.group = null;
+        this.connectedTo = {};
 
     }
     get id() {
@@ -780,9 +790,17 @@ class Window {
         Window.windows.remove(this.id);
         this.element.parentNode.removeChild(this.element);
     }
+    static fullyMaximizedWindow = null;
     maximize(xAxis/*: boolean*/, yAxis/*: boolean*/) {
+        if(this.isMaximized()) {
+            this.unmaximize();
+            return;
+        }
         if(xAxis && yAxis) {
             // Replace the maximized window
+            if(Window.fullyMaximizedWindow !== null)
+                Window.fullyMaximizedWindow.unmaximize();
+            Window.fullyMaximizedWindow = this;
         }
         this.element.classList.add("maximized");
         xAxis && this.element.classList.add("maximized-xAxis");
@@ -827,6 +845,19 @@ class Window {
             y: Rem.fromPixel(rect.y)
         };
     }
+    setAnchorPosition() {
+        const rect = this.rect();
+        const ww = Rem.fromPixel(window.innerWidth);
+        const wh = Rem.fromPixel(window.innerHeight);
+        this.anchorPosition = {
+            top: rect.top,                               /* REM */
+            middleTop: (rect.top + rect.height/2) / wh,  /* RATIO */
+            bottom: wh - (rect.top + rect.height),       /* REM */
+            left: rect.left,                             /* REM */
+            middleLeft: (rect.left + rect.width/2) / ww, /* RATIO */
+            right: ww - (rect.left + rect.width)         /* REM */
+        };
+    }
     distanceTo(win1) {
         const rect0 = this.rect();
         const rect1 = win1.rect();
@@ -864,6 +895,18 @@ class Window {
     // TODO: repositioning windows when window resized is done in this order
     //          - each group as a whole
     //          - windows that don't belong to any group
+    static anchorOf(rect) {
+        const ww = Rem.fromPixel(window.innerWidth);
+        const wh = Rem.fromPixel(window.innerHeight);
+        let tb, lr;
+        if(rect.x <= 0)                    lr = 1;
+        else if(rect.x + rect.width >= ww) lr = -1;
+        else                               lr = 0;
+        if(rect.y <= 0)                     tb = 1;
+        else if(rect.y + rect.height >= wh) tb = -1;
+        else                                tb = 0;
+        return [tb, lr];
+    }
     static _resizeHandler = null;
     static _minWidth = 9;
     static _minHeight = 6;
@@ -880,11 +923,11 @@ class Window {
         // tbWise 0, lrWise 0 = moving window
         const el = win.element;
         const rect0 = win.rect();
-        const top0 = rect0.y; // Get the shown position
-        const left0 = rect0.x;
+        const [mouseX0, mouseY0] = [mouseX, mouseY];
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
-        const [mouseX0, mouseY0] = [mouseX, mouseY];
+        const top0 = rect0.y; // Get the shown position
+        const left0 = (win.isMaximized() ? mouseX0 - width0/2 : rect0.x); // When maximized get middle position
         const connectedTo0 = {...win.connectedTo};
 
         const snapDist = Rem.fromPixel(10);
@@ -930,15 +973,7 @@ class Window {
                 clearInterval(this._resizeHandler);
                 this._resizeHandler = null;
             }
-            // Set anchor
-            const rect1 = win.rect();
-            if(rect1.x <= 0)                     win.lrAnchor = 1;
-            else if(rect1.x + rect1.width >= ww) win.lrAnchor = -1;
-            else                                 win.lrAnchor = 0;
-            if(rect1.y <= 0)                      win.tbAnchor = 1;
-            else if(rect1.y + rect1.height >= wh) win.tbAnchor = -1;
-            else                                  win.tbAnchor = 0;
-
+            //
         }).bind(this);
         this._resizeHandler = setInterval((() => {
             const dx = mouseX - mouseX0;
@@ -948,7 +983,10 @@ class Window {
             if(!changed) return;
             farthest = Math.max(farthest, d);
             if(win.isMaximized() && farthest <= ignoreMaximizedThreshold) return;
-            win.isMaximized() && win.unmaximize();
+            if(win.isMaximized()) {
+                win.unmaximize();
+                
+            }
             // TODO: xAxis maximized left
 
             // 0,0 = t,l only snap t,l
@@ -1006,6 +1044,11 @@ class Window {
             el.style.width = Rem.toString(width1);
             el.style.height = Rem.toString(height1);
 
+            // Anchor
+            const rect1 = win.rect();
+            [win.tbAnchor, win.lrAnchor] = Window.anchorOf(rect1);
+            win.setAnchorPosition();
+
             // Connections
             for(const win1 of Object.values({...connectedTo0, ...win.connectedTo})) {
                 if(win.distanceTo(win1) === 0) {
@@ -1020,14 +1063,14 @@ class Window {
                 win.connectedTo[connectCandidate.id] = connectCandidate;
             }
             if(Object.keys(win.connectedTo).length > 0) {
-                Window.showConnectionsIndicator(win);
+                Window.showConnectionsIndicator(win.connections());
             } else {
                 Window.hideConnectionsIndicator();
             }
         }).bind(this), 16);
     }
-    static showConnectionsIndicator(win) {
-        const rect = this.connectionsRect(win);
+    static showConnectionsIndicator(connections) {
+        const rect = this.connectionsRect(connections);
         const gi = document.getElementById("window-connections-indicator");
         gi.style.top = Rem.toString(rect.top);
         gi.style.left = Rem.toString(rect.left);
@@ -1039,8 +1082,25 @@ class Window {
         const gi = document.getElementById("window-connections-indicator");
         gi.style.display = "";
     }
-    static connectionsRect(win0) {
-        const values = Object.values(win0.connections());
+    static connectionsAnchor(connections) {
+        const values = Object.values(connections);
+        const anchors = values.map(v => [v.tbAnchor, v.lrAnchor]);
+        // if any is tb anchor top, it's top
+        // else bottom it's bottom
+        // else middle
+        const tbMax = Math.max(...anchors.map(v => v[0]));
+        const tbMin = Math.min(...anchors.map(v => v[0]));
+        const lrMax = Math.max(...anchors.map(v => v[1]));
+        const lrMin = Math.min(...anchors.map(v => v[1]));
+        let [tb, lr] = [0, 0];
+        if(tbMax === 1)       tb = 1;
+        else if(tbMin === -1) tb = -1;
+        if(lrMax === 1)       lr = 1;
+        else if(lrMin === -1) lr = -1;
+        return [tb, lr];
+    }
+    static connectionsRect(connections) {
+        const values = Object.values(connections);
         const rects = values.map(v => v.rect());
         const rect = {
             top: Math.min(...rects.map(v => v.top)),
@@ -1083,7 +1143,53 @@ let w3 = new Window({
 document.addEventListener("mouseup", () => {
     Window.stopResize();
 });
+let windowResizeTimeout = null;
+window.addEventListener("resize", () => {
+    if(windowResizeTimeout !== null) clearTimeout(windowResizeTimeout);
+    windowResizeTimeout = setTimeout(() => {
+        // 
+        const ww = Rem.fromPixel(window.innerWidth);
+        const wh = Rem.fromPixel(window.innerHeight);
+        let repositioned = {};
+        for(const win0 of Window.windows.values()) {
+            if(win0.id in repositioned) continue;
 
+            const connections = win0.connections();
+            repositioned = {...repositioned, ...connections};
+            const anchor = Window.connectionsAnchor(connections);
+            const values = Object.values(connections);
+
+            // Connections middle diff
+            const avgMt = values.map(v => v.anchorPosition.middleTop).reduce((a, b) => a+b) / values.length;
+            const avgMl = values.map(v => v.anchorPosition.middleLeft).reduce((a, b) => a+b) / values.length;
+
+            const rect = Window.connectionsRect(connections);
+            const mt = (rect.top + rect.height/2) / wh;
+            const ml = (rect.left + rect.width/2) / ww;
+            const dt = (mt - avgMt) * -rect.height;
+            const dl = (ml - avgMl) * -rect.width;
+            
+            for(const win1 of values) {
+                const ap = win1.anchorPosition;
+                const el = win1.element;
+                const [w, h] = [Rem.fromString(el.style.width), Rem.fromString(el.style.height)];
+                let t = Rem.fromString(el.style.top) + dt;
+                let l = Rem.fromString(el.style.left) + dl;
+
+                if(anchor[0] === 1) t = ap.top;
+                else if(anchor[0] === -1) t = wh - ap.bottom - h;
+
+                if(anchor[1] === 1) l = ap.left;
+                else if(anchor[1] === -1) l = ww - ap.right - w;
+
+                el.style.top = Rem.toString(t);
+                el.style.left = Rem.toString(l);
+            }
+        }
+    }, 100);
+});
+
+//////////////////////////////
 const btnDebugAdd = document.getElementById("btn-debug-add");
 
 const defaults = {
@@ -1225,18 +1331,6 @@ const repositionStream = (stream) => {
     const txy = readTranslateXY(stream.style.transform);
     stream.style.transform = `translate(${xy[0]+txy[0]}rem, ${xy[1]+txy[1]}rem)`;
 };
-let windowResizeTimeout = null;
-window.addEventListener("resize", (event) => {
-    if(windowResizeTimeout !== null) clearTimeout(windowResizeTimeout);
-    windowResizeTimeout = setTimeout(() => {
-        const streams = document.querySelectorAll(".stream");
-        for(const stream of streams.values()) {
-            repositionStream(stream);
-        }
-        updateStreamsCache();
-    }, 100);
-});
-
 
 // Stream-related
 
