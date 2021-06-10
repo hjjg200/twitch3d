@@ -92,6 +92,9 @@ input[type='text']:focus {
 body.still-cursor main {
     cursor: none !important;
 }
+body.still-cursor .window.twitch-offline {
+    opacity: 0;
+}
 
 button.button-cancel {
     background: rgba(0, 0, 0, 0.1);
@@ -239,7 +242,9 @@ input[type='checkbox']:checked {
     position: absolute;
     background: black;
     box-shadow: 0 .2rem .2rem rgba(0, 0, 0, 0);
-    transition: box-shadow cubic-bezier(0.785, 0.135, 0.15, 0.86) 1s;
+    transition: box-shadow cubic-bezier(0.785, 0.135, 0.15, 0.86) 1s,
+        opacity cubic-bezier(0.785, 0.135, 0.15, 0.86) 1s;
+    opacity: 1;
 }
 body:not(.still-cursor) .window.focused {
     box-shadow: 0 .2rem 1rem rgba(0, 0, 0, 0.3);
@@ -1408,9 +1413,9 @@ document.addEventListener("mouseover", (ev) => {
 // Twitch methods
 const defaultTwitchOptions = {
     volume: 0.5,
-    quality: "Auto",
+    quality: "auto",
     maximizedVolume: 1,
-    maximizedQuality: "Auto"
+    maximizedQuality: "auto"
 };
 const twitchComponents = {};
 const interpretTwitchComponents = (serialization) => {
@@ -1436,10 +1441,21 @@ const addTwitchComponent = (win, channel, chat, options) => {
             player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
             player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
         };
-        setOptions();
+        player.addEventListener("Twitch.Player.READY", () => {
+            setOptions();
+            if(player.getEnded()) win.element.classList.add("twitch-offline");
+        });
+        player.addEventListener("Twitch.Player.ONLINE", () => {
+            win.element.classList.remove("twitch-offline");
+        });
+        player.addEventListener("Twitch.Player.PLAY", () => {
+            win.element.classList.remove("twitch-offline");
+        });
+        player.addEventListener("Twitch.Player.OFFLINE", () => {
+            win.element.classList.add("twitch-offline");
+        });
         win.addEventListener("maximize", () => {
             setOptions();
-            console.log(player.getQuality(), player.getVolume());
         });
     } else {
         const iframe = createElement("iframe");
