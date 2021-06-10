@@ -366,6 +366,20 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     position: absolute;
     background: green;
 }
+.window.maximized {
+    transform: none !important;
+}
+.window.maximied-xAxis.maximized-yAxis {
+    z-index: 0 !important;
+}
+.window.maximized-xAxis {
+    left: 0 !important;
+    width: 100% !important;
+}
+.window.maximized-yAxis {
+    top: 0 !important;
+    height: 100% !important;
+}
 .window.in-move .corner {
     display: none;
 }
@@ -411,6 +425,10 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     background: rgba(255, 0, 0, 0.5);
     transform: translate(-50%, -50%);
     position: absolute;
+}
+.window.in-move .corner,
+.window:not(.focused) .corner {
+    display: none;
 }
 .window .corner-top,
 .window .corner-bottom {
@@ -566,20 +584,51 @@ class Rem {
     static fromString(str) {
         return parseFloat(str.trim().replace("rem", ""));
     }
-    static translateXY(x, y) {
-        return `translate(${this.toString(x)}, ${this.toString(y)})`;
-    }
-    static fromTranslateXY(str) {
-        if(str === "") return [new Rem(0), new Rem(0)];
-        const rmp = str.slice(str.indexOf("(") + 1, str.indexOf(")"));
-        const xy = rmp.split(/\s*,\s*/g);
-        return [this.fromString(xy[0]), this.fromString(xy[1])];
-    }
 };
+
+// Class DLL for window indexing
+class DLL {
+    constructor() {
+        this._map = {};
+        this.head = null;
+    }
+    get length() {
+        return Object.keys(this._map).length;
+    }
+    values() {
+        return Object.values(this._map).map((v) => v.value);
+    }
+    remove(key) {
+        const node = this.get(key);
+        const next = node.next;
+        const prev = node.prev;
+        if(next !== null) next.prev = prev;
+        if(prev !== null) prev.next = next;
+        if(this.head === node) this.head = prev;
+        delete this._map[key];
+    }
+    get(key) {
+        return this._map[key];
+    }
+    put(key, value) {
+        const oldHead = this.head;
+        this.head = {
+            value: value,
+            next: null,
+            prev: oldHead
+        };
+        this._map[key] = this.head;
+        if(oldHead !== null) {
+            oldHead.next = this.head;
+        }
+    }
+}
 
 // Class Window
 class Window {
-    static windows = {};
+    static baseZIndex = 1;
+    static windows = new DLL();
+    static groups = [];
     static autoIncrement = 0;
     static newId() {
         return `window-${this.autoIncrement++}`;
@@ -593,7 +642,7 @@ class Window {
         this.element.style.left = Rem.toString(left);
         this.element.style.width = Rem.toString(width);
         this.element.style.height = Rem.toString(height);
-        this.element.style.transform = Rem.translateXY(xOffset, yOffset);
+        this.element.style.zIndex = `${Window.windows.length + Window.baseZIndex}`;
         //  div.window
         //      div.window-relative
         //          div.window-title-bar
@@ -623,10 +672,16 @@ class Window {
         const btnClose = createElement("button", "button-close");
 
         title.addEventListener("mousedown", (() => {
+            this.focus();
             Window._startResize(this, 0, 0);
         }).bind(this));
 
         titleBarRelative.appendChild(title);
+
+        btnClose.addEventListener("mouseup", (() => {
+            this.close();
+        }).bind(this));
+
         controls.appendChild(btnMaximize);
         controls.appendChild(btnClose);
         titleBarRelative.appendChild(controls);
@@ -642,18 +697,32 @@ class Window {
         const cornerBottomRight = createElement("div", "corner", "corner-bottom-right");
         const cornerBottomLeft = createElement("div", "corner", "corner-bottom-left");
 
+        // Corner edges
         cornerTop.addEventListener("mousedown", (() => {
             Window._startResize(this, 1, 0);
+        }).bind(this));
+        cornerTop.addEventListener("dblclick", (() => {
+            this.maximize(false, true);
         }).bind(this));
         cornerRight.addEventListener("mousedown", (() => {
             Window._startResize(this, 0, -1);
         }).bind(this));
+        cornerRight.addEventListener("dblclick", (() => {
+            this.maximize(true, false);
+        }).bind(this));
         cornerBottom.addEventListener("mousedown", (() => {
             Window._startResize(this, -1, 0);
+        }).bind(this));
+        cornerBottom.addEventListener("dblclick", (() => {
+            this.maximize(false, true);
         }).bind(this));
         cornerLeft.addEventListener("mousedown", (() => {
             Window._startResize(this, 0, 1);
         }).bind(this));
+        cornerLeft.addEventListener("dblclick", (() => {
+            this.maximize(true, false);
+        }).bind(this));
+        // Corners
         cornerTopLeft.addEventListener("mousedown", (() => {
             Window._startResize(this, 1, 1);
         }).bind(this));
@@ -680,67 +749,129 @@ class Window {
         this.contentElement = createElement("div", "window-content");
         relative.appendChild(this.contentElement);
 
+        // Genenral properties
+        this.tbAnchor = 1; // 1: top, 0: middle top, -1: bottom
+        this.lrAnchor = 1; // 1: left, 0: middle left, -1: right
+
         // Append
         this.element.appendChild(relative);
         streamsContainer.appendChild(this.element);
-        Window.windows[id] = this;
+        Window.windows.put(id, this);
+        this.focus();
 
     }
-    setTitle(title) {
+    get id() {
+        return this.element.id;
+    }
+    setTitle(title/*: string*/) {
 
     }
     close() {
-
+        Window.windows.remove(this.id);
+        this.element.parentNode.removeChild(this.element);
     }
-    maximize(xAxis, yAxis) {
-
+    maximize(xAxis/*: boolean*/, yAxis/*: boolean*/) {
+        if(xAxis && yAxis) {
+            // Replace the maximized window
+        }
+        this.element.classList.add("maximized");
+        xAxis && this.element.classList.add("maximized-xAxis");
+        yAxis && this.element.classList.add("maximized-yAxis");
+    }
+    isMaximized() {
+        return this.element.matches(".maximized");
     }
     unmaximize() {
-
+        this.element.classList.remove("maximized", "maximized-xAxis", "maximized-yAxis");
     }
     focus() {
-
+        // Move top level
+        Window.windows.remove(this.id);
+        Window.windows.put(this.id, this);
+        let node = Window.windows.head;
+        let headIndex = Window.windows.length + Window.baseZIndex - 1;
+        while(node !== null) {
+            node.value.element.style.zIndex = `${headIndex--}`;
+            node.value.blur();
+            node = node.prev;
+        }
+        //
+        this.element.classList.add("focused");
     }
     blur() {
-
+        this.element.classList.remove("focused");
     }
     reposition() {
 
     }
+    rect() {
+        const rect = this.element.getBoundingClientRect();
+        return {
+            top: Rem.fromPixel(rect.top),
+            left: Rem.fromPixel(rect.left),
+            bottom: Rem.fromPixel(rect.bottom),
+            right: Rem.fromPixel(rect.right),
+            width: Rem.fromPixel(rect.width),
+            height: Rem.fromPixel(rect.height),
+            x: Rem.fromPixel(rect.x),
+            y: Rem.fromPixel(rect.y)
+        };
+    }
+    distanceTo(win1) {
+        const rect0 = this.rect();
+        const rect1 = win1.rect();
+        // tb distance
+        let tb = 0;
+        if(rect1.bottom < rect0.top) tb = rect0.top - rect1.bottom;
+        else if(rect1.top > rect0.bottom) tb = rect1.top - rect0.bottom;
+        // lr distance
+        let lr = 0;
+        if(rect1.right < rect0.left) lr = rect0.left - rect1.right;
+        else if(rect1.left > rect0.right) lr = rect1.left - rect0.right;
+        //
+        return Math.pow(tb*tb + lr*lr, 0.5);
+    }
+
+    // TODO: tbAnchor, lrAnchor
+    // TODO: window groups
+    //          - delete group when there is no 0-distanced windows
+    //              - consider actual coords
+    //          - form group when snapping, exclude fully maximized window
+    //              - snapping is done on actual coords
+    //          - group indicator is visible when cursor is hovering on any of the group's window
+    // TODO: repositioning windows when window resized is done in this order
+    //          - each group as a whole
+    //          - windows that don't belong to any group
     static _resizeHandler = null;
     static _minWidth = 9;
     static _minHeight = 6;
-    static _stopResize() {
-        for(const el of document.querySelectorAll(".window.in-move, .window.in-resize").values()) {
-            el.classList.remove("in-move", "in-resize");
-        }
-        if(this._resizeHandler !== null) {
-            clearInterval(this._resizeHandler);
-            this._resizeHandler = null;
+    static _stopResize = null;
+    static stopResize() {
+        if(this._stopResize !== null) {
+            this._stopResize();
+            this._stopResize = null;
         }
     }
-    static _startResize(window, tbWise, lrWise) {
+    static _startResize(win, tbWise, lrWise) {
         // tbWise: 1=top, 0=none, -1=bottom
         // lrWise: 1=left, 0=none, -1=right
         // tbWise 0, lrWise 0 = moving window
-        const el = window.element;
-        const top0 = Rem.fromString(el.style.top);
-        const left0 = Rem.fromString(el.style.left);
+        const el = win.element;
+        const rect0 = win.rect();
+        const top0 = rect0.y; // Get the shown position
+        const left0 = rect0.x;
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
-        const [xOffset0, yOffset0] = Rem.fromTranslateXY(el.style.transform);
         const [mouseX0, mouseY0] = [mouseX, mouseY];
 
         const snapDist = Rem.fromPixel(10);
-        const snapHelper = (origin, length, useOrigin, dests) => {
+        const snapHelper = (origin, dests) => {
+            // dir: -1=left or top, 1=right or bottom
             let ret = [false];
             for(let i = 0; i < dests.length; i++) {
                 const dest = dests[i];
-                const offset = origin + (useOrigin ? 0 : length);
-                if(offset >= dest - snapDist && offset <= dest + snapDist)
-                    ret = [true,
-                        useOrigin ? dest : origin,
-                        useOrigin ? (origin - dest + length) : (dest - origin)];
+                if(origin >= dest - snapDist && origin <= dest + snapDist)
+                    ret = [true, dest - origin];
             }
             return ret;
         };
@@ -748,25 +879,53 @@ class Window {
         const lrDests = [];
         const ww = Rem.fromPixel(window.innerWidth);
         const wh = Rem.fromPixel(window.innerHeight);
-        for(const window1 of Object.values(this.windows)) {
-            if(window1 === window) continue;
-            const top1 = Rem.fromString(window1.element.style.top);
-            const left1 = Rem.fromString(window1.element.style.left);
-            tbDests.push(top1, top1 + Rem.fromString(window1.element.style.height));
-            lrDests.push(left1, left1 + Rem.fromString(window1.element.style.width));
+        for(const win1 of this.windows.values()) {
+            if(win1 === win) continue;
+            const rect1 = win1.rect();
+            const top1 = rect1.top;
+            const left1 = rect1.left;
+            tbDests.push(top1, top1 + rect1.height);
+            lrDests.push(left1, left1 + rect1.width);
         }
         const tDests = [0, ...tbDests];
         const bDests = [wh, ...tbDests];
         const lDests = [0, ...lrDests];
         const rDests = [ww, ...lrDests];
 
+        const ignoreMaximizedThreshold = Rem.fromPixel(10);
+
         let changed = false;
-        this._stopResize();
+        let farthest = 0;
+        this.stopResize();
+        this._stopResize = (() => {
+            win.element.classList.remove("in-move", "in-resize");
+            if(this._resizeHandler !== null) {
+                clearInterval(this._resizeHandler);
+                this._resizeHandler = null;
+            }
+            // Set anchor
+            const rect1 = win.rect();
+            if(rect1.x <= 0)                     win.lrAnchor = 1;
+            else if(rect1.x + rect1.width >= ww) win.lrAnchor = -1;
+            else                                 win.lrAnchor = 0;
+            if(rect1.y <= 0)                      win.tbAnchor = 1;
+            else if(rect1.y + rect1.height >= wh) win.tbAnchor = -1;
+            else                                  win.tbAnchor = 0;
+
+            console.log(win.tbAnchor, win.lrAnchor);
+            // Set group
+
+        }).bind(this);
         this._resizeHandler = setInterval((() => {
             const dx = mouseX - mouseX0;
             const dy = mouseY - mouseY0;
+            const d = Math.pow(dx*dx + dy*dy, 0.5);
             changed = changed || (dx !== 0 || dy !== 0);
             if(!changed) return;
+            farthest = Math.max(farthest, d);
+            if(win.isMaximized() && farthest <= ignoreMaximizedThreshold) return;
+            win.isMaximized() && win.unmaximize();
+            // TODO: xAxis maximized left
 
             // 0,0 = t,l only snap t,l
             // 1,0 = t,h only snap t,h
@@ -797,24 +956,24 @@ class Window {
             height1 += hok ? (tbWise !== -1 ? -dy : dy) : 0;
 
             if(tok || hok) {
-                const [ts, to, tl] = snapHelper(top1, height1, true, tDests);
-                const [bs, bo, bl] = snapHelper(top1, height1, false, bDests);
-                let o = top1, l = height1;
+                const [ts, td] = snapHelper(top1, tDests);
+                const [bs, bd] = snapHelper(top1 + height1, bDests);
+                let d = 0;
                 // Top takes priority
-                if(bs) {o = bo; l = bl;}
-                if(ts) {o = to; l = tl;}
-                if(tok) top1 = o;
-                if(hok) height1 = l;
+                if(bs) {d = bd;}
+                if(ts) {d = td;}
+                if(tok) top1 += d;
+                if(hok) height1 += tok ? -d : d;
             }
             if(lok || wok) {
-                const [ls, lo, ll] = snapHelper(left1, width1, true, lDests);
-                const [rs, ro, rl] = snapHelper(left1, width1, false, rDests);
-                let o = left1, l = width1;
+                const [ls, ld] = snapHelper(left1, lDests);
+                const [rs, rd] = snapHelper(left1 + width1, rDests);
+                let d = 0;
                 // Left takes priority
-                if(rs) {o = ro; l = rl;}
-                if(ls) {o = lo; l = ll;}
-                if(lok) left1 = o;
-                if(wok) width1 = l;
+                if(rs) {d = rd;}
+                if(ls) {d = ld;}
+                if(lok) left1 += d;
+                if(wok) width1 += lok ? -d : d;
             }
 
             el.style.top = Rem.toString(top1);
@@ -828,7 +987,7 @@ class Window {
 let w1 = new Window({
     top: 11,
     left: 1,
-    width: 5,
+    width: 15,
     height: 6,
     xOffset: 0,
     yOffset: 0
@@ -836,13 +995,13 @@ let w1 = new Window({
 let w2 = new Window({
     top: 6,
     left: 7,
-    width: 5,
+    width: 15,
     height: 6,
     xOffset: 0,
     yOffset: 0
 });
 document.addEventListener("mouseup", () => {
-    Window._stopResize();
+    Window.stopResize();
 });
 
 const btnDebugAdd = document.getElementById("btn-debug-add");
