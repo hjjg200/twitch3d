@@ -10,6 +10,19 @@
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 
         <style>
+
+:root {
+    --title-bar-height: 1.5rem;
+    --corner-width: 1.2rem;
+    --corner-edge-width: 0.4rem;
+    --color-twitch: #9146FF;
+    --color-twitch-bright: rgb(166, 107, 255);
+    --color-gray-0: #444;
+    --color-gray-1: rgba(0, 0, 0, 0.3);
+    --color-gray-2: rgba(0, 0, 0, 0.15);
+    --color-gray-3: rgba(0, 0, 0, 0.1);
+}
+
 * {
     appearance: none;
     -moz-appearance: none;
@@ -59,7 +72,7 @@ button {
     border: none;
     outline: none;
     color: white;
-    background: #9146FF;
+    background: var(--color-twitch);
     font-weight: bold;
     font-size: .8rem;
     padding: .4rem .7rem;
@@ -67,7 +80,7 @@ button {
 }
 
 button:hover {
-    background: rgb(166, 107, 255);
+    background: var(--color-twitch-bright);
 }
 
 iframe {
@@ -75,15 +88,15 @@ iframe {
 }
 
 input[type='text'] {
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--color-gray-3);
     border-radius: .3rem;
     padding: .4rem .6rem;
 }
 input[type='text']:hover {
-    box-shadow: 0 0 0 .125rem rgba(0, 0, 0, 0.15) inset;
+    box-shadow: 0 0 0 .125rem var(--color-gray-2) inset;
 }
 input[type='text']:focus {
-    box-shadow: 0 0 0 .125rem #9146FF inset;
+    box-shadow: 0 0 0 .125rem var(--color-twitch) inset;
     background: white;
 }
 
@@ -97,31 +110,22 @@ body.still-cursor .window.twitch-offline {
 }
 
 button.button-cancel {
-    background: rgba(0, 0, 0, 0.1);
-    color: #444;
+    background: var(--color-gray-3);
+    color: var(--color-gray-0);
 }
 button.button-cancel:hover {
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--color-gray-2);
 }
 
 #introduction {
     color: white;
-    font-size: 1.2rem;
+    font-size: 1rem;
     width: 24rem;
-    height: fit-content;
+    height: max-content;
     top: 50%;
     left: 50%;
     position: absolute;
     transform: translate(-50%, -50%);
-}
-
-/* NEW STYLE */
-:root {
-    --title-bar-height: 1.5rem;
-    --corner-width: 1.2rem;
-    --corner-edge-width: 0.4rem;
-    --color-twitch: #9146FF;
-    --color-gray-3: rgba(0, 0, 0, 0.1);
 }
 
 .frame {
@@ -143,7 +147,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 }
 
 #context-menu {
-    box-shadow: 0 0 .8rem rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 .8rem var(--color-gray-1);
     display: none;
     width: fit-content;
     background: white;
@@ -165,7 +169,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 #context-menu button {
     background: none;
     border-radius: 0;
-    color: #444;
+    color: var(--color-gray-0);
     display: block;
     width: 100%;
     height: 100%;
@@ -198,7 +202,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: fit-content;
+    width: max-content;
 }
 
 .modal-buttons {
@@ -211,6 +215,11 @@ label {
 }
 label > *:not(:last-child) {
     margin-right: .3rem;
+}
+
+input,
+button {
+    transition: background-color cubic-bezier(0.22, 1, 0.36, 1) .15s;
 }
 
 input[type='checkbox'] {
@@ -247,7 +256,7 @@ input[type='checkbox']:checked {
     opacity: 1;
 }
 body:not(.still-cursor) .window.focused {
-    box-shadow: 0 .2rem 1rem rgba(0, 0, 0, 0.3);
+    box-shadow: 0 .2rem 1rem var(--color-gray-1);
 }
 .window.maximized {
     transform: none !important;
@@ -311,6 +320,7 @@ body:not(.still-cursor) .window.focused {
     -webkit-user-select: none;
 }
 .window-controls {
+    display: flex;
     position: absolute;
     right: 0;
     top: 0;
@@ -328,12 +338,18 @@ body:not(.still-cursor) .window.focused {
     background-position: 50% 50%;
     background-size: auto 50%;
 }
+.window-controls .button-maximize:hover {
+    background-color: var(--color-twitch-bright);
+}
 .window-controls .button-close {
     background-color: #FF354D;
     background-image: url(svg/close.svg);
     background-repeat: no-repeat;
     background-position: 50%, 50%;
     background-size: auto 53%;
+}
+.window-controls .button-close:hover {
+    background-color: #ff4a5f;
 }
 .window .corner {
     transform: translate(-50%, -50%);
@@ -431,7 +447,7 @@ body:not(.still-cursor) .window.focused {
             <div id="context-menu-content">
                 <ul id="context-menu-items">
                     <li>
-                        <button id="btn-add-stream">Add Channel</button>
+                        <button id="btn-add-stream">Add Channel</button> 
                     </li>
                     <li>
                         <button id="btn-fullscreen">Fullscreen</button>
@@ -1463,6 +1479,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
         });
         player.addEventListener(Twitch.Player.ONLINE, () => {
             win.element.classList.remove("twitch-offline");
+            player.setMuted(false);
         });
         player.addEventListener(Twitch.Player.PLAY, () => {
             win.element.classList.remove("twitch-offline");
