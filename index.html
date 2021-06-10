@@ -777,6 +777,11 @@ class Window {
         this.element.querySelector(".window-title-text").textContent = title;
     }
     close() {
+        for(const id1 of Object.keys(this.connectedTo)) {
+            const win1 = Window.windows.get(id1);
+            delete win1.connectedTo[this.id];
+        }
+
         Window.windows.remove(this.id);
         this.element.parentNode.removeChild(this.element);
 
