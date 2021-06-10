@@ -119,37 +119,8 @@ div.frame.frame-ralign {
     transform: translate(-50%, -50%);
 }
 
-.stream {
-    background: gray;
-    position: absolute;
-}
-.stream-content {
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-@keyframes iframe-hint {
-    from {
-        background: rgba(255, 255, 255, 0.2);
-    }
-    to {
-        background: rgba(255, 255, 255, 0);
-    }
-}
-.stream.enable-iframe .video-overlay {
-    box-shadow: 0 0 0 4px rgba(92, 152, 255, 0.55) inset; /* visual hint */
-    animation: cubic-bezier(0.0, 0.0, 0.2, 1) 2.5s 1 iframe-hint;
-    pointer-events: none;
-}
 .stream.enable-iframe iframe {
     pointer-events: all;
-}
-.stream .video-overlay {
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    position: absolute;
 }
 .stream .title-bar,
 .stream .title {
@@ -171,105 +142,10 @@ div.frame.frame-ralign {
 .stream:not(.in-move):not(.in-resize) .title-bar:not(:hover) {
     opacity: 0;
 }
-.stream .title-bar .title {
-    display: block;
-    line-height: 1.75rem;
-    text-align: center;
-}
-.stream .title-bar button {
-    border-radius: 0;
-    color: white;
-    font-size: 1.8rem;
-    line-height: .6rem;
-    overflow: hidden;
-    font-weight: normal;
-    height: 1.75rem;
-    width: 3.5rem;
-    display: inline-block;
-    position: absolute;
-}
-.stream .title-bar .controls:hover button {
-}
-.stream .title-bar .btn-maximize {
-    top: 0;
-    right: 3.5rem;
-    font-size: 1.6rem;
-    line-height: .55rem;
-}
-.stream .title-bar .btn-close {
-    top: 0;
-    right: 0rem;
-}
-.stream.maximized {
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 0 !important;
-    transform: none !important;
-}
 .stream:not(.focused) .corner,
 .stream.maximized .corner,
 .stream.in-move .corner {
     display: none;
-}
-.stream .corner {
-    width: 1.2rem;
-    height: 1.2rem;
-    position: absolute;
-    transform: translate(-50%, -50%);
-}
-.stream .corner-top,
-.stream .corner-bottom {
-    cursor: ns-resize;
-    width: calc(100% - 1.2rem);
-    height: 0.4rem;
-}
-.stream .corner-right,
-.stream .corner-left {
-    cursor: ew-resize;
-    width: 0.4rem;
-    height: calc(100% - 1.2rem);
-}
-.stream .corner-top {
-    left: 50%;
-    top: 0;
-}
-.stream .corner-right {
-    left: 100%;
-    top: 50%;
-}
-.stream .corner-bottom {
-    left: 50%;
-    top: 100%;
-}
-.stream .corner-left {
-    left: 0;
-    top: 50%;
-}
-.stream .corner-top-left,
-.stream .corner-bottom-right {
-    cursor: nwse-resize;
-}
-.stream .corner-top-right,
-.stream .corner-bottom-left {
-    cursor: nesw-resize;
-}
-.stream .corner-top-left {
-    left: 0;
-    top: 0;
-}
-.stream .corner-top-right {
-    left: 100%;
-    top: 0;
-}
-.stream .corner-bottom-right {
-    left: 100%;
-    top: 100%;
-}
-.stream .corner-bottom-left {
-    left: 0;
-    top: 100%;
 }
 .stream:not(.focused) iframe {
     pointer-events: none;
@@ -349,7 +225,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     margin-top: 1rem;
 }
 
-#add-stream-modal input {
+#modal-add-stream input {
     width: 15rem;
     margin-top: 3rem;
 }
@@ -466,6 +342,34 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 .window .corner-top-right {left: 100%;}
 .window .corner-bottom-right {left: 100%; top: 100%;}
 .window .corner-bottom-left {top: 100%;}
+.window-content-overlay,
+.window-content,
+.window-content > * {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+}
+.window iframe {
+    pointer-events: none;
+}
+.window.iframe-enabled iframe {
+    pointer-events: all;
+}
+@keyframes iframe-hint {
+    from {
+        background: rgba(255, 255, 255, 0.3);
+    }
+    to {
+        background: rgba(255, 255, 255, 0);
+    }
+}
+.window.iframe-enabled .window-content-overlay {
+    box-shadow: 0 0 0 4px rgba(92, 152, 255, 0.55) inset; /* visual hint */
+    animation: cubic-bezier(0, 0.55, 0.45, 1) 1.5s 1 iframe-hint;
+    pointer-events: none;
+}
 
 #window-connections-indicator {
     display: none;
@@ -506,19 +410,25 @@ body:not(.fullscreen) #btn-exit-fullscreen {
                 </ul>
             </div>
         </div>
-        <div id="add-stream-modal" class="modal">
+        <div id="modal-add-stream" class="modal">
             <div class="modal-content">
                 <h2>Add Channel</h2>
                 <p>Enter the Twitch ID of the streamer</p>
-                <div class="frame">
-                    <input type="text">
-                </div>
+                <label for="input-with-chat">
+                    <input type="checkbox" id="input-with-chat">
+                    <span>Include Chat</span>
+                </label>
+                <label for="input-streamer">
+                    <input type="text" id="input-streamer">
+                </label>
                 <div class="frame frame-ralign modal-buttons">
                     <button class="button button-ok">OK</button>
                     <button class="button button-cancel">Cancel</button>
                 </div>
             </div>
         </div>
+
+        <script src= "https://player.twitch.tv/js/embed/v1.js"></script>
         <script>
 
 const lang = navigator.language.slice(0, 2);
@@ -656,6 +566,8 @@ class Window {
         this.element.style.zIndex = `${Window.windows.length + Window.baseZIndex}`;
         //  div.window
         //      div.window-relative
+        //          div.window-content
+        //          div.window-content-overlay
         //          div.window-title-bar
         //              div.window-title-bar-relative
             //              div.window-title
@@ -670,10 +582,29 @@ class Window {
         //          div.corner.corner-top-right
         //          div.corner.corner-bottom-right
         //          div.corner.corner-bottom-left
-        //          div.window-content
 
         // Relative
         const relative = createElement("div", "window-relative");
+
+        // Window content
+        this.contentElement = createElement("div", "window-content");
+        this.contentElement.id = `${this.id}-content`;
+        const contentOverlay = createElement("div", "window-content-overlay");
+
+        let ctxMenuWasNotOpen = true;
+        contentOverlay.addEventListener("mousedown", (ev) => {
+            ctxMenuWasNotOpen = ctxMenu.style.display === "";
+        });
+        contentOverlay.addEventListener("mouseup", ((ev) => {
+            this.focus();
+            if(ev.button === 0 && ctxMenuWasNotOpen) {
+                enableIframe(this);
+            }
+        }).bind(this));
+
+        relative.appendChild(this.contentElement);
+        relative.appendChild(contentOverlay);
+
         // Title bar
         const titleBar = createElement("div", "window-title-bar");
         const titleBarRelative = createElement("div", "window-title-bar-relative");
@@ -762,10 +693,6 @@ class Window {
         relative.appendChild(cornerBottomRight);
         relative.appendChild(cornerBottomLeft);
 
-        // Window content
-        this.contentElement = createElement("div", "window-content");
-        relative.appendChild(this.contentElement);
-
         // Append
         this.element.appendChild(relative);
         streamsContainer.appendChild(this.element);
@@ -773,10 +700,7 @@ class Window {
         this.focus();
 
         // Genenral properties
-        // 1: top, 0: middle top, -1: bottom
-        // 1: left, 0: middle left, -1: right
-        [this.tbAnchor, this.lrAnchor] = [0, 0];
-        this.setAnchorPosition();
+        this.anchorPosition = Window.anchorPositionOf(this.rect(), Rem.fromPixel(window.innerWidth), Rem.fromPixel(window.innerHeight));
         this.group = null;
         this.connectedTo = {};
 
@@ -830,35 +754,36 @@ class Window {
     blur() {
         this.element.classList.remove("focused");
     }
-    rect() {
+    rect(actual) {
+        const sty = this.element.style;
         const rect = this.element.getBoundingClientRect();
+        const [top, left, width, height] = [
+            actual ? Rem.fromString(sty.top) : Rem.fromPixel(rect.top),
+            actual ? Rem.fromString(sty.left) : Rem.fromPixel(rect.left),
+            actual ? Rem.fromString(sty.width) : Rem.fromPixel(rect.width),
+            actual ? Rem.fromString(sty.height) : Rem.fromPixel(rect.height)
+        ];
         return {
-            top: Rem.fromPixel(rect.top),
-            left: Rem.fromPixel(rect.left),
-            bottom: Rem.fromPixel(rect.bottom),
-            right: Rem.fromPixel(rect.right),
-            width: Rem.fromPixel(rect.width),
-            height: Rem.fromPixel(rect.height),
-            x: Rem.fromPixel(rect.x),
-            y: Rem.fromPixel(rect.y)
+            top,
+            left,
+            bottom: top + height,
+            right: left + width,
+            width,
+            height,
+            x: left,
+            y: top
         };
     }
-    setAnchorPosition() {
-        const rect = this.rect();
-        const ww = Rem.fromPixel(window.innerWidth);
-        const wh = Rem.fromPixel(window.innerHeight);
-        this.anchorPosition = {
-            top: rect.top,                               /* REM */
-            middleTop: (rect.top + rect.height/2) / wh,  /* RATIO */
-            bottom: wh - (rect.top + rect.height),       /* REM */
-            left: rect.left,                             /* REM */
-            middleLeft: (rect.left + rect.width/2) / ww, /* RATIO */
-            right: ww - (rect.left + rect.width)         /* REM */
-        };
+    get anchor() {
+        let [tb, lr] = [this.tbAnchor, this.lrAnchor];
+        return [
+            this.element.matches(".maximized-yAxis") ? 0 : tb, // single-axis maximized always middle anchored
+            this.element.matches(".maximized-xAxis") ? 0 : lr
+        ];
     }
     distanceTo(win1) {
-        const rect0 = this.rect();
-        const rect1 = win1.rect();
+        const rect0 = this.rect(false);
+        const rect1 = win1.rect(false);
         // tb distance
         let tb = 0;
         if(rect1.bottom < rect0.top)      tb = rect0.top - rect1.bottom;
@@ -868,7 +793,10 @@ class Window {
         if(rect1.right < rect0.left)      lr = rect0.left - rect1.right;
         else if(rect1.left > rect0.right) lr = rect1.left - rect0.right;
         //
-        return Math.pow(tb*tb + lr*lr, 0.5);
+        let dist = Math.pow(tb*tb + lr*lr, 0.5);
+        const epsilon = Rem.fromPixel(0.5);
+        if(dist < epsilon) dist = 0;
+        return dist;
     }
     connections() {
         const visited = {};
@@ -905,10 +833,21 @@ class Window {
         else                                tb = 0;
         return [tb, lr];
     }
+    static anchorPositionOf(rect, ww, wh) {
+        return {
+            top: rect.top,                               /* REM */
+            middleTop: (rect.top + rect.height/2) / wh,  /* RATIO */
+            bottom: wh - (rect.top + rect.height),       /* REM */
+            left: rect.left,                             /* REM */
+            middleLeft: (rect.left + rect.width/2) / ww, /* RATIO */
+            right: ww - (rect.left + rect.width)         /* REM */
+        };
+    }
     static _resizeHandler = null;
     static _minWidth = 9;
     static _minHeight = 6;
     static _stopResize = null;
+    static deadZoneThreshold = 2;
     static stopResize() {
         if(this._stopResize !== null) {
             this._stopResize();
@@ -916,18 +855,20 @@ class Window {
         }
     }
     static _startResize(win, tbWise, lrWise) {
+
+        disableIframes();
+
         // tbWise: 1=top, 0=none, -1=bottom
         // lrWise: 1=left, 0=none, -1=right
         // tbWise 0, lrWise 0 = moving window
         const el = win.element;
-        const rect0 = win.rect();
+        const rect0 = win.rect(false);
         const [mouseX0, mouseY0] = [mouseX, mouseY];
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
         const top0 = rect0.y; // Get the shown position
         const left0 = (win.isMaximized() ? mouseX0 - width0/2 : rect0.x); // When maximized get middle position
         const connectedTo0 = {...win.connectedTo};
-
         const snapDist = Rem.fromPixel(10);
         const snapDgnDist = 1.41 * snapDist * 3; // Diagnoal distance is more generous
         const snapHelper = (origin, dests) => {
@@ -948,7 +889,7 @@ class Window {
         const wh = Rem.fromPixel(window.innerHeight);
         for(const win1 of this.windows.values()) {
             if(win1 === win) continue;
-            const rect1 = win1.rect();
+            const rect1 = win1.rect(false);
             const top1 = rect1.top;
             const left1 = rect1.left;
             tbDests.push({value: top1, owner: win1}, {value: top1 + rect1.height, owner: win1});
@@ -961,6 +902,9 @@ class Window {
 
         const ignoreMaximizedThreshold = Rem.fromPixel(10);
 
+        // Show current connections
+        Window.showConnectionsIndicator(win.connections());
+
         let connectCandidate = null; // other window to stick to
         let changed = false;
         let farthest = 0;
@@ -972,6 +916,7 @@ class Window {
                 this._resizeHandler = null;
             }
             //
+            Window.hideConnectionsIndicator();
         }).bind(this);
         this._resizeHandler = setInterval((() => {
             const dx = mouseX - mouseX0;
@@ -1013,11 +958,22 @@ class Window {
             height1 += hok ? (tbWise !== -1 ? -dy : dy) : 0;
 
             // Out of boundary check
-            const threshold = 2;
-            if(top1 > wh - threshold) top1 = wh - threshold;
-            if(top1 < 0) top1 = 0;
-            if(left1 > ww - threshold) left1 = ww - threshold;
-            if(left1 + width1 < threshold) left1 = threshold - width1;
+            if(top1 > wh - Window.deadZoneThreshold) {
+                height1 += hok ? ((wh - Window.deadZoneThreshold) - top1) : 0;
+                top1 = wh - Window.deadZoneThreshold;
+            }
+            if(top1 < 0) {
+                height1 += hok ? top1 : 0;
+                top1 = 0;
+            }
+            if(left1 > ww - Window.deadZoneThreshold) {
+                width1 += wok ? ((ww - Window.deadZoneThreshold) - left1) : 0;
+                left1 = ww - Window.deadZoneThreshold;
+            }
+            if(left1 + width1 < Window.deadZoneThreshold) {
+                width1 += wok ? (Window.deadZoneThreshold - left1) : 0;
+                left1 = Window.deadZoneThreshold - width1;
+            }
 
             // Snapping
             connectCandidate = null;
@@ -1071,9 +1027,9 @@ class Window {
             el.style.height = Rem.toString(height1);
 
             // Anchor
-            const rect1 = win.rect();
+            const rect1 = win.rect(false);
             [win.tbAnchor, win.lrAnchor] = Window.anchorOf(rect1);
-            win.setAnchorPosition();
+            win.anchorPosition = Window.anchorPositionOf(rect1, ww, wh);
 
             // Connections
             for(const win1 of Object.values({...connectedTo0, ...win.connectedTo})) {
@@ -1096,7 +1052,7 @@ class Window {
         }).bind(this), 16);
     }
     static showConnectionsIndicator(connections) {
-        const rect = this.connectionsRect(connections);
+        const rect = this.connectionsRect(connections, false);
         const gi = document.getElementById("window-connections-indicator");
         gi.style.top = Rem.toString(rect.top);
         gi.style.left = Rem.toString(rect.left);
@@ -1110,7 +1066,7 @@ class Window {
     }
     static connectionsAnchor(connections) {
         const values = Object.values(connections);
-        const anchors = values.map(v => [v.tbAnchor, v.lrAnchor]);
+        const anchors = values.map(v => v.anchor);
         // if any is tb anchor top, it's top
         // else bottom it's bottom
         // else middle
@@ -1125,57 +1081,35 @@ class Window {
         else if(lrMin === -1) lr = -1;
         return [tb, lr];
     }
-    static connectionsRect(connections) {
+    static connectionsRect(connections, actual) {
         const values = Object.values(connections);
-        const rects = values.map(v => v.rect());
+        const rects = values.map(v => v.rect(actual));
         const rect = {
             top: Math.min(...rects.map(v => v.top)),
             left: Math.min(...rects.map(v => v.left)),
             bottom: Math.max(...rects.map(v => v.bottom)),
-            right: Math.max(...rects.map(v => v.right)),
-            x: Math.min(...rects.map(v => v.x)),
-            y: Math.min(...rects.map(v => v.y))
+            right: Math.max(...rects.map(v => v.right))
         };
+        rect.x = rect.left;
+        rect.y = rect.top;
         rect.width = rect.right - rect.left;
         rect.height = rect.bottom - rect.top;
         return rect;
     }
 }
-
-let w1 = new Window({
-    top: 11,
-    left: 1,
-    width: 15,
-    height: 6,
-    xOffset: 0,
-    yOffset: 0
-});
-let w2 = new Window({
-    top: 6,
-    left: 7,
-    width: 15,
-    height: 6,
-    xOffset: 0,
-    yOffset: 0
-});
-let w3 = new Window({
-    top: 6,
-    left: 17,
-    width: 15,
-    height: 6,
-    xOffset: 0,
-    yOffset: 0
-});
 document.addEventListener("mouseup", () => {
     Window.stopResize();
 });
 let windowResizeTimeout = null;
+const windowDimensions = () => {
+    return [Rem.fromPixel(window.innerWidth), Rem.fromPixel(window.innerHeight)];
+};
+let [ww0, wh0] = windowDimensions();
 window.addEventListener("resize", () => {
     if(windowResizeTimeout !== null) clearTimeout(windowResizeTimeout);
     windowResizeTimeout = setTimeout(() => {
         // 
-        const ww = Rem.fromPixel(window.innerWidth);
-        const wh = Rem.fromPixel(window.innerHeight);
+        const [ww1, wh1] = windowDimensions();
         let repositioned = {};
         for(const win0 of Window.windows.values()) {
             if(win0.id in repositioned) continue;
@@ -1186,79 +1120,64 @@ window.addEventListener("resize", () => {
             const values = Object.values(connections);
 
             // Connections middle diff
-            const avgMt = values.map(v => v.anchorPosition.middleTop).reduce((a, b) => a+b) / values.length;
-            const avgMl = values.map(v => v.anchorPosition.middleLeft).reduce((a, b) => a+b) / values.length;
-
-            const rect = Window.connectionsRect(connections);
-            const mt = (rect.top + rect.height/2) / wh;
-            const ml = (rect.left + rect.width/2) / ww;
-            const dt = (mt - avgMt) * -rect.height;
-            const dl = (ml - avgMl) * -rect.width;
+            const rect = Window.connectionsRect(connections, true);
+            const ap0 = Window.anchorPositionOf(rect, ww0, wh0);
+            const mt = (rect.top + rect.height/2) / wh1;
+            const ml = (rect.left + rect.width/2) / ww1;
+            const dt = (ap0.middleTop - mt) * wh1;
+            const dl = (ap0.middleLeft - ml) * ww1;
             
             for(const win1 of values) {
-                const ap = win1.anchorPosition;
+                const ap1 = win1.anchorPosition;
                 const el = win1.element;
                 const [w, h] = [Rem.fromString(el.style.width), Rem.fromString(el.style.height)];
                 let t = Rem.fromString(el.style.top) + dt;
                 let l = Rem.fromString(el.style.left) + dl;
 
-                if(anchor[0] === 1) t = ap.top;
-                else if(anchor[0] === -1) t = wh - ap.bottom - h;
+                if(anchor[0] === 1) t = ap1.top;
+                else if(anchor[0] === -1) t = wh1 - ap1.bottom - h;
 
-                if(anchor[1] === 1) l = ap.left;
-                else if(anchor[1] === -1) l = ww - ap.right - w;
+                if(anchor[1] === 1) l = ap1.left;
+                else if(anchor[1] === -1) l = ww1 - ap1.right - w;
+
+                if(t > wh1 - Window.deadZoneThreshold) t = wh1 - Window.deadZoneThreshold;
+                else if(t < 0) t = 0;
+                if(l > ww1 - Window.deadZoneThreshold) l = ww1 - Window.deadZoneThreshold;
+                else if(l < 0) l = 0;
 
                 el.style.top = Rem.toString(t);
                 el.style.left = Rem.toString(l);
             }
         }
-    }, 100);
+
+        [ww0, wh0] = [ww1, wh1];
+    }, 16);
 });
 
-
-//////////////////////////////
-const btnDebugAdd = document.getElementById("btn-debug-add");
-
-const defaults = {
-    streamWidth: "45rem",
-    streamHeight: "30rem",
-    streamTop: "6rem",
-    streamLeft: "6rem",
-    minWdith: "9rem",
-    minHeight: "6rem",
-    streamZIndex: "1",
-    streamMaximized: false,
-    streamTransform: "",
-    streamLastBottom: "",
-    streamLastRight: "",
-    streamLastMT: "",
-    streamLastML: ""
-};
-
-const hasParent = (elem, parent) => {
-    let n = elem.parentNode;
+const isContainedIn = (element, parent) => {
+    if(element === parent) return true;
+    let n = element.parentNode;
     while(n !== null) {
         if(n === parent) return true;
         n = n.parentNode;
     }
     return false;
-};
-
-const hasParentSelector = (elem, selector) => {
-    let n = elem.parentNode;
+}
+const isContainedInSelector = (element, selector) => {
+    if(element.matches(selector)) return true;
+    let n = element.parentNode;
     while(n !== null && n.matches) {
         if(n.matches(selector)) return true;
         n = n.parentNode;
     }
     return false;
-};
-
+}
 
 // Menu
 const ctxMenu = document.getElementById("context-menu");
 const ctxItems = document.getElementById("context-menu-items");
 const modals = document.querySelectorAll(".modal");
-const addStreamModal = document.getElementById("add-stream-modal");
+const modalAddStream = document.getElementById("modal-add-stream");
 const btnAddStream = document.getElementById("btn-add-stream");
 const btnFullscreen = document.getElementById("btn-fullscreen");
 const btnExitFullscreen = document.getElementById("btn-exit-fullscreen");
@@ -1266,19 +1185,19 @@ const btnGitHub = document.getElementById("btn-github");
 document.addEventListener("contextmenu", (ev) => {
     ev.preventDefault();
     ctxMenu.style.display = "block";
-    ctxMenu.style.top = `${pxToRem(mouseY - 3)}rem`;
-    ctxMenu.style.left = `${pxToRem(mouseX + 3)}rem`;
+    ctxMenu.style.top = Rem.toString(mouseY - Rem.fromPixel(3));
+    ctxMenu.style.left = Rem.toString(mouseX + Rem.fromPixel(3));
 });
 document.addEventListener("mousedown", (ev) => {
-    disableIframeStreams();
-    if(!hasParent(ev.target, ctxMenu)) {
+    // disableIframeStreams();
+    if(!isContainedIn(ev.target, ctxMenu)) {
         ctxMenu.style.display = "";
     }
 });
 document.addEventListener("mouseup", (ev) => {
     const t = ev.target;
-    if(!(t.matches(".modal-content") || hasParentSelector(t, ".modal-content"))
-        && (t.matches(".modal") || hasParentSelector(t, ".modal"))) {
+    if(!isContainedInSelector(t, ".modal-content")
+        && isContainedInSelector(t, ".modal")) {
         for(const modal of modals.values()) {
             modal.style.display = "";
         }
@@ -1288,7 +1207,7 @@ ctxItems.addEventListener("mouseup", (ev) => {
     ctxMenu.style.display = "";
 });
 btnAddStream.addEventListener("mouseup", (ev) => {
-    addStreamModal.dispatchEvent(new Event("modalopen"));
+    modalAddStream.dispatchEvent(new Event("modalopen"));
 });
 btnFullscreen.addEventListener("mouseup", (ev) => {
     document.body.requestFullscreen();
@@ -1303,36 +1222,80 @@ document.addEventListener("fullscreenchange", (ev) => {
     document.body.classList[document.fullscreenElement === null ? "remove" : "add"]("fullscreen");
 });
 
-let notInsideIframe = true;
-let iframeEnabledStream = null;
-const disableIframeStreams = () => {
-    const streams = document.querySelectorAll(".stream.enable-iframe");
-    for(const stream of streams.values()) {
-        stream.classList.remove("enable-iframe");
-    }
-    notInsideIframe = false;
-    iframeEnabledStream = null;
-};
+{ // Add Stream Modal
+    const btnOK = modalAddStream.querySelector(".button-ok");
+    const btnCancel = modalAddStream.querySelector(".button-cancel");
+    const streamer = modalAddStream.querySelector("#input-streamer");
+    const withChat = modalAddStream.querySelector("#input-with-chat");
+    let [o_mouseX, o_mouseY] = [0, 0]; // When modal gets open
+    const addStreamHelper = () => {
+        if(streamer.value === "") {
+        
+            return;
+        }
+        const streamWin = new Window({
+            top: o_mouseY,
+            left: o_mouseX,
+            width: 32,
+            height: 18
+        });
+        const player = new Twitch.Player(streamWin.contentElement.id, {
+            channel: streamer.value,
+            parent: [window.location.hostname]
+        });
+        if(withChat.value) {
+            const chatWin = new Window({
+                top: o_mouseY + 2,
+                left: o_mouseX + 2,
+                width: 18,
+                height: 30
+            });
+            const iframe = createElement("iframe");
+            iframe.src = `https://www.twitch.tv/embed/${streamer.value}/chat?parent=${window.location.hostname}`;
+            chatWin.contentElement.appendChild(iframe);
+        }
+        // Reset
+        streamer.value = "";
+        withChat.value = false;
+        modalAddStream.style.display = "";
+    };
+    modalAddStream.addEventListener("modalopen", (ev) => {
+        modalAddStream.style.display = "block";
+        [o_mouseX, o_mouseY] = [mouseX, mouseY];
+        streamer.focus();
+    });
+    modalAddStream.addEventListener("keyup", (ev) => {
+        if(ev.key === "Enter") addStreamHelper();
+    });
+    btnOK.addEventListener("mouseup", addStreamHelper);
+    btnCancel.addEventListener("mouseup", (ev) => {
+        modalAddStream.style.display = "";
+    });
+}
 
-const enableIframeStream = (stream) => {
-    disableIframeStreams();
-    notInsideIframe = false;
-    iframeEnabledStream = stream;
-    stream.classList.add("enable-iframe");
+let iframeEnabledWindow = null;
+const disableIframes = () => {
+    const winEls = document.querySelectorAll(".window.iframe-enabled");
+    for(const el of winEls.values()) {
+        el.classList.remove("iframe-enabled");
+    }
+    iframeEnabledWindow = null;
+}
+
+const enableIframe = (win) => {
+    disableIframes();
+    iframeEnabledWindow = win;
+    win.element.classList.add("iframe-enabled");
 };
 
 document.addEventListener("mouseover", (ev) => {
-    if(notInsideIframe === false) {
-        notInsideIframe = true;
-    }
-    if(iframeEnabledStream !== null) {
-        if(!hasParent(ev.target, iframeEnabledStream) && iframeEnabledStream !== ev.target) {
-            disableIframeStreams();
-        }
+    if(iframeEnabledWindow !== null) {
+        if(isContainedIn(ev.target, iframeEnabledWindow.element) === false)
+            disableIframes();
     }
 });
 
-const snapRatio = 16 / 9;
+//////////////////////////////
 
 const updateStreamsCache = () => {
     const data = [];
@@ -1360,115 +1323,11 @@ const updateStreamsCache = () => {
 };
 
 const addStream = (streamer, options) => {
-    /*
-    div.stream
-        div.stream-content
-            div.title-bar
-                span.title
-                div.controls
-                    button.btn-maximize
-                    button.btn-close
-            div.corner.corner-top-left
-            div.corner.corner-top
-            div.corner.corner-top-right
-            div.corner.corner-right
-            div.corner.corner-bottom-right
-            div.corner.corner-bottom
-            div.corner.corner-bottom-left
-            div.corner.corner-left
-            div.iframe-container
-                iframe
-    */
-    options = {...defaults, ...options};
-    const stream = createElement("div", "stream");
-    stream.setAttribute("data-streamer", streamer);
-    const streamContent = createElement("div", "stream-content");
+
     //
-    const videoOverlay = createElement("div", "video-overlay");
-    let ctxMenuWasNotOpen = true;
-    videoOverlay.addEventListener("mousedown", (ev) => {
-        ctxMenuWasNotOpen = ctxMenu.style.display === "";
-    });
-    videoOverlay.addEventListener("mouseup", (ev) => {
-        focusStream(stream);
-        if(ev.button === 0 && ctxMenuWasNotOpen) enableIframeStream(stream);
-    });
-    streamContent.appendChild(videoOverlay);
-    // titleBar start
-    const titleBar = createElement("div", "title-bar");
-    const title = createElement("span", "title");
-    const titleControls = createElement("div", "controls");
-    const btnMaximize = createElement("button", "btn-maximize");
-    const btnClose = createElement("button", "btn-close");
-    btnMaximize.addEventListener("mouseup", maximizeStream.bind(null, stream));
-    btnClose.addEventListener("mouseup", closeStream.bind(null, stream));
     title.textContent = streamer;
-    btnClose.innerHTML = "&times;";
-    btnMaximize.textContent = "+";
-    title.addEventListener("dblclick", maximizeStream.bind(null, stream));
-    title.addEventListener("mousedown", startMove.bind(null, stream));
-    titleBar.appendChild(title);
-    titleControls.appendChild(btnMaximize);
-    titleControls.appendChild(btnClose);
-    titleBar.appendChild(titleControls);
-    streamContent.appendChild(titleBar);
-    // corner start
-    const cornerTopLeft = createElement("div", "corner", "corner-top-left");
-    const cornerTop = createElement("div", "corner", "corner-top");
-    const cornerTopRight = createElement("div", "corner", "corner-top-right");
-    const cornerRight = createElement("div", "corner", "corner-right");
-    const cornerBottomRight = createElement("div", "corner", "corner-bottom-right");
-    const cornerBottom = createElement("div", "corner", "corner-bottom");
-    const cornerBottomLeft = createElement("div", "corner", "corner-bottom-left");
-    const cornerLeft = createElement("div", "corner", "corner-left");
-    cornerTopLeft.addEventListener("mousedown", startResize.bind(null, stream, 1, 1));
-    cornerTop.addEventListener("mousedown", startResize.bind(null, stream, 1, 0));
-    cornerTopRight.addEventListener("mousedown", startResize.bind(null, stream, 1, -1));
-    cornerRight.addEventListener("mousedown", startResize.bind(null, stream, 0, -1));
-    cornerBottomRight.addEventListener("mousedown", startResize.bind(null, stream, -1, -1));
-    cornerBottom.addEventListener("mousedown", startResize.bind(null, stream, -1, 0));
-    cornerBottomLeft.addEventListener("mousedown", startResize.bind(null, stream, -1, 1));
-    cornerLeft.addEventListener("mousedown", startResize.bind(null, stream, 0, 1));
-    streamContent.appendChild(cornerTopLeft);
-    streamContent.appendChild(cornerTop);
-    streamContent.appendChild(cornerTopRight);
-    streamContent.appendChild(cornerRight);
-    streamContent.appendChild(cornerBottomRight);
-    streamContent.appendChild(cornerBottom);
-    streamContent.appendChild(cornerBottomLeft);
-    streamContent.appendChild(cornerLeft);
-    // iframeContainer start
-    const iframeContainer = createElement("div", "iframe-container");
-    const iframe = createElement("iframe");
     iframe.src = `https://player.twitch.tv/?muted=false&channel=${streamer}&parent=${window.location.hostname}`;
     iframe.allowfullscreen = "false";
-    iframeContainer.appendChild(iframe);
-    streamContent.appendChild(iframeContainer);
-
-    stream.appendChild(streamContent);
-    streamsContainer.appendChild(stream);
-    stream.style.width = options.streamWidth;
-    stream.style.height = options.streamHeight;
-    stream.style.top = options.streamTop;
-    stream.style.left = options.streamLeft;
-    stream.style.zIndex = options.streamZIndex;
-    stream.setAttribute("data-last-bottom", options.streamLastBottom);
-    stream.setAttribute("data-last-right", options.streamLastRight);
-    stream.setAttribute("data-last-mt", options.streamLastMT);
-    stream.setAttribute("data-last-ml", options.streamLastML);
-    if(options.streamLastBottom !== "")
-        repositionStream(stream);
-    else
-        setLastBottomRight(stream);
-
-    // Focus
-    focusStream(stream);
-    stream.addEventListener("mousedown", (ev) => {
-        focusStream(stream);
-    });
-
-    // Maximize
-    if(options.streamMaximized) maximizeStream(stream);
 
     // Add to local storage
     updateStreamsCache();
@@ -1484,31 +1343,6 @@ const addStream = (streamer, options) => {
     }
 }
 
-{ // Add Stream Modal
-    const btnOK = addStreamModal.querySelector(".button-ok");
-    const btnCancel = addStreamModal.querySelector(".button-cancel");
-    const streamer = addStreamModal.querySelector("input[type='text']");
-    const addStreamHelper = () => {
-        if(streamer.value === "") {
-        
-            return;
-        }
-        addStream(streamer.value);
-        streamer.value = "";
-        addStreamModal.style.display = "";
-    };
-    addStreamModal.addEventListener("modalopen", (ev) => {
-        addStreamModal.style.display = "block";
-        streamer.focus();
-    });
-    addStreamModal.addEventListener("keyup", (ev) => {
-        if(ev.key === "Enter") addStreamHelper();
-    });
-    btnOK.addEventListener("mouseup", addStreamHelper);
-    btnCancel.addEventListener("mouseup", (ev) => {
-        addStreamModal.style.display = "";
-    });
-}
 
         </script>
     </body>
