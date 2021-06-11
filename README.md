@@ -27,6 +27,7 @@ https://hjjg200.github.io/twitch3d
 - [x] Make offline channels transparent when cursor is still
 - [x] Remember volume and quality when maximized and normal separately
 - [x] Change from non-interactive iframe to interactive embedded players
+- [ ] Fix group handlers for fully maximized windows
 - [ ] Maximizing transition
 - [ ] Better handling of auto-mute policy for better UX
 - [ ] Better `#introduction`

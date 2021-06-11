@@ -175,6 +175,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     padding: .5rem 4rem .5rem .6rem;
     font-weight: normal;
     text-align: left;
+    transition: none;
 }
 #context-menu button:hover {
     background: var(--color-twitch-alt);
@@ -191,6 +192,20 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     height: 100%;
     z-index: 2000;
 }
+.modal.open {
+    display: block;
+    opacity: 1;
+}
+@keyframes modal-open {
+    from {
+        top: 45%; 
+        opacity: 0.2;
+    }
+    to {
+        top: 50%;
+        opacity: 1;
+    }
+}
 .modal-content {
     background: var(--color-background-3);
     color: var(--color-gray-0);
@@ -201,6 +216,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     left: 50%;
     transform: translate(-50%, -50%);
     width: max-content;
+    animation: modal-open cubic-bezier(0.22, 1, 0.36, 1) .7s 1;
 }
 
 .modal-buttons {
@@ -233,14 +249,20 @@ input[type='checkbox'] {
     height: 1rem;
     display: inline-block;
 }
+input[type='checkbox']:hover {
+    background-color: var(--color-gray-2);
+}
 input[type='checkbox']:checked {
     background-color: var(--color-twitch-alt);
     background-size: auto 50%;
 }
+input[type='checkbox']:checked:hover {
+    background-color: var(--color-twitch-alt-bright);
+}
 
 input[type='text'] {
     background: var(--color-gray-3);
-    color: white;
+    color: var(--color-twitch-alt-bright);
     border-radius: .3rem;
     padding: .4rem .6rem;
 }
@@ -266,15 +288,21 @@ input[type='text']:focus {
     position: absolute;
     background: black;
     box-shadow: 0 .2rem .2rem rgba(0, 0, 0, 0);
-    transition: box-shadow cubic-bezier(0.785, 0.135, 0.15, 0.86) 1s,
-        opacity cubic-bezier(0.785, 0.135, 0.15, 0.86) 1s;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    transition-duration: .65s;
+    transition-property: box-shadow, opacity, width, height, top, left;
     opacity: 1;
+}
+.window.in-move,
+.window.in-resize {
+    transition-property: box-shadow, opacity;
 }
 body:not(.still-cursor) .window.focused {
     box-shadow: 0 .2rem 1rem var(--color-shadow);
 }
 .window.maximized {
     transform: none !important;
+    transition-property: box-shadow, opacity;
 }
 .window.maximized-xAxis.maximized-yAxis {
     z-index: 0 !important;
@@ -298,7 +326,7 @@ body:not(.still-cursor) .window.focused {
     height: 100%;
 }
 .window-title-bar {
-    background: var(--color-twitch);
+    background: var(--color-gray-3);
     position: absolute;
     top: 0;
     left: 0;
@@ -354,7 +382,7 @@ body:not(.still-cursor) .window.focused {
     background-size: auto 50%;
 }
 .window-controls .button-maximize:hover {
-    background-color: var(--color-twitch-bright);
+    background-color: var(--color-gray-2);
 }
 .window-controls .button-close {
     background-color: #FF354D;
@@ -441,7 +469,9 @@ body:not(.still-cursor) .window.focused {
 #window-connections-indicator {
     display: none;
     position: absolute;
-    box-shadow: 0 0 0 2px #FF3D00;
+    box-shadow: 0 0 0 2px #FF3D00 inset;
+    z-index: 1000;
+    pointer-events: none;
 }
         </style>
     </head>
@@ -896,8 +926,8 @@ class Window {
         ];
     }
     distanceTo(win1) {
-        const rect0 = this.rect(false);
-        const rect1 = win1.rect(false);
+        const rect0 = this.rect(this.isMaximized(true));
+        const rect1 = win1.rect(win1.isMaximized(true));
         // tb distance
         let tb = 0;
         if(rect1.bottom < rect0.top)      tb = rect0.top - rect1.bottom;
@@ -1099,11 +1129,11 @@ class Window {
                 const maxYAxis = win.element.matches(".maximized-yAxis");
                 if((maxXAxis && wok) || (maxYAxis && hok)) {
                     if(farthest <= ignoreMaximizedThreshold) return;
-                    left0 = left0_alt;
+                    if(maxXAxis) left0 = left0_alt;
                     win.unmaximize();
                 } else if((maxXAxis && lok) || (maxYAxis && tok)) {
                     if(maxXAxis ? (Math.abs(dx) > ignoreMaximizedThreshold) : (Math.abs(dy) > ignoreMaximizedThreshold)) {
-                        left0 = left0_alt;
+                        if(maxXAxis) left0 = left0_alt;
                         win.unmaximize();
                     }
                 }
@@ -1376,7 +1406,7 @@ document.addEventListener("mouseup", (ev) => {
     if(!isContainedInSelector(t, ".modal-content")
         && isContainedInSelector(t, ".modal")) {
         for(const modal of modals.values()) {
-            modal.style.display = "";
+            closeModal(modal);
         }
     }
 });
@@ -1384,7 +1414,7 @@ ctxItems.addEventListener("mouseup", (ev) => {
     ctxMenu.style.display = "";
 });
 btnAddStream.addEventListener("mouseup", (ev) => {
-    modalAddStream.dispatchEvent(new Event("modalopen"));
+    openModal(modalAddStream);
 });
 btnFullscreen.addEventListener("mouseup", (ev) => {
     document.body.requestFullscreen();
@@ -1407,6 +1437,15 @@ btnGitHub.addEventListener("mouseup", (ev) => {
 document.addEventListener("fullscreenchange", (ev) => {
     document.body.classList[document.fullscreenElement === null ? "remove" : "add"]("fullscreen");
 });
+const openModal = (modal) => {
+    if(modal.matches(".modal") === false) return false;
+    modal.classList.add("open");
+    modal.dispatchEvent(new Event("modalopen"));
+};
+const closeModal = (modal) => {
+    if(modal.matches(".modal") === false) return false;
+    modal.classList.remove("open");
+};
 
 { // Add Stream Modal
     const btnOK = modalAddStream.querySelector(".button-ok");
@@ -1442,7 +1481,6 @@ document.addEventListener("fullscreenchange", (ev) => {
         modalAddStream.style.display = "";
     };
     modalAddStream.addEventListener("modalopen", (ev) => {
-        modalAddStream.style.display = "block";
         [o_mouseX, o_mouseY] = [mouseX, mouseY];
         streamer.focus();
     });
@@ -1451,7 +1489,7 @@ document.addEventListener("fullscreenchange", (ev) => {
     });
     btnOK.addEventListener("mouseup", addStreamHelper);
     btnCancel.addEventListener("mouseup", (ev) => {
-        modalAddStream.style.display = "";
+        closeModal(modalAddStream);
     });
 }
 
