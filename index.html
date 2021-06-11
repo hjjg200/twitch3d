@@ -23,10 +23,14 @@
     --corner-edge-width: 0.4rem;
     --color-twitch: #9146FF;
     --color-twitch-bright: rgb(166, 107, 255);
-    --color-gray-0: #444;
-    --color-gray-1: rgba(0, 0, 0, 0.3);
-    --color-gray-2: rgba(0, 0, 0, 0.15);
-    --color-gray-3: rgba(0, 0, 0, 0.1);
+    --color-twitch-alt: #69ffc3;
+    --color-twitch-alt-bright: #90ffd3;
+    --color-background-3: #19074d;
+    --color-gray-0: #F0F0FF; /* 0: most vivid */
+    --color-gray-1: #7548bd;
+    --color-gray-2: #583894;
+    --color-gray-3: #322466; /* 3: most dull */
+    --color-shadow: rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -77,8 +81,8 @@ main {
 button {
     border: none;
     outline: none;
-    color: white;
-    background: var(--color-twitch);
+    color: var(--color-twitch);
+    background: var(--color-twitch-alt);
     font-weight: bold;
     font-size: .8rem;
     padding: .4rem .7rem;
@@ -86,24 +90,11 @@ button {
 }
 
 button:hover {
-    background: var(--color-twitch-bright);
+    background: var(--color-twitch-alt-bright);
 }
 
 iframe {
     pointer-events: none;
-}
-
-input[type='text'] {
-    background: var(--color-gray-3);
-    border-radius: .3rem;
-    padding: .4rem .6rem;
-}
-input[type='text']:hover {
-    box-shadow: 0 0 0 .125rem var(--color-gray-2) inset;
-}
-input[type='text']:focus {
-    box-shadow: 0 0 0 .125rem var(--color-twitch) inset;
-    background: white;
 }
 
 /* Specific */
@@ -153,10 +144,10 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 }
 
 #context-menu {
-    box-shadow: 0 0 .8rem var(--color-gray-1);
+    box-shadow: 0 0 .8rem var(--color-shadow);
     display: none;
     width: fit-content;
-    background: white;
+    background: var(--color-background-3);
     position: absolute;
     z-index: 2001;
     overflow: hidden;
@@ -186,8 +177,8 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     text-align: left;
 }
 #context-menu button:hover {
-    background: var(--color-twitch);
-    color: white;
+    background: var(--color-twitch-alt);
+    color: var(--color-twitch);
 }
 
 .modal {
@@ -201,7 +192,8 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     z-index: 2000;
 }
 .modal-content {
-    background: white;
+    background: var(--color-background-3);
+    color: var(--color-gray-0);
     position: relative;
     font-size: .8rem;
     padding: 1rem;
@@ -232,7 +224,7 @@ button {
 
 input[type='checkbox'] {
     background-color: var(--color-gray-3);
-    background-image: url(svg/check.svg);
+    background-image: url(svg/check-twitch.svg);
     background-repeat: no-repeat;
     background-position: 50% 50%;
     background-size: 0 0;
@@ -242,8 +234,22 @@ input[type='checkbox'] {
     display: inline-block;
 }
 input[type='checkbox']:checked {
-    background-color: var(--color-twitch);
+    background-color: var(--color-twitch-alt);
     background-size: auto 50%;
+}
+
+input[type='text'] {
+    background: var(--color-gray-3);
+    color: white;
+    border-radius: .3rem;
+    padding: .4rem .6rem;
+}
+input[type='text']:hover {
+    box-shadow: 0 0 0 .125rem var(--color-gray-2) inset;
+}
+input[type='text']:focus {
+    box-shadow: 0 0 0 .125rem var(--color-twitch-alt) inset;
+    background: var(--color-gray-2);
 }
 
 #modal-add-stream #input-streamer {
@@ -265,7 +271,7 @@ input[type='checkbox']:checked {
     opacity: 1;
 }
 body:not(.still-cursor) .window.focused {
-    box-shadow: 0 .2rem 1rem var(--color-gray-1);
+    box-shadow: 0 .2rem 1rem var(--color-shadow);
 }
 .window.maximized {
     transform: none !important;
