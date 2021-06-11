@@ -2,6 +2,8 @@
 
 Watch multiple streams and move or scale them as you please.
 
+https://hjjg200.github.io/twitch3d
+
 ## Known Issues
 
 - Embedded Twitch players tend to show some purple screen due to Twitch's embedding policies. https://discuss.dev.twitch.tv/t/getting-a-message-on-my-embeds-that-goes-away-after-a-while/29592
