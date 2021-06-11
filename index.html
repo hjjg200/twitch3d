@@ -833,9 +833,13 @@ class Window {
             : this.element.matches(".maximized");
     }
     unmaximize() {
+        const prevXAxis = this.element.matches(".maximized-xAxis");
+        const prevYAxis = this.element.matches(".maximized-yAxis");
         this.element.classList.remove("maximized", "maximized-xAxis", "maximized-yAxis");
         this.dispatchEvent(new Event("change"));
-        this.dispatchEvent(new Event("maximize"));
+        this.dispatchEvent(new CustomEvent("unmaximize", {
+            detail: {prevXAxis, prevYAxis}
+        }));
     }
     focus() {
         // Move top level
@@ -1515,20 +1519,26 @@ const addTwitchComponent = (win, channel, chat, options) => {
         player.addEventListener(Twitch.Player.OFFLINE, () => {
             win.element.classList.add("twitch-offline");
         });
-        win.addEventListener("maximize", () => {
+        win.addEventListener("maximize", (ev) => {
             // Store old options
-            const current = win.isMaximized(true);
-            if(current) {
+            if(win.isMaximized(true)) {
                 // Store unmaximized settings
                 options.volume = player.getVolume();
                 options.quality = player.getQuality();
-            } else {
+                storeTwitchSerialization();
+                //
+                player.setOptions();
+            }
+        });
+        win.addEventListener("unmaximize", (ev) => {
+            if(ev.detail.prevXAxis && ev.detail.prevYAxis) {
+                // Store old options
                 options.maximizedVolume = player.getVolume();
                 options.maximizedQuality = player.getQuality();
+                storeTwitchSerialization();
+                //
+                player.setOptions();
             }
-            storeTwitchSerialization();
-            //
-            player.setOptions();
         });
     } else {
         const iframe = createElement("iframe");
