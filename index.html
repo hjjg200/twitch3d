@@ -225,11 +225,17 @@ label > *:not(:last-child) {
 
 input,
 button {
-    transition: background-color cubic-bezier(0.22, 1, 0.36, 1) .15s;
+    transition-property: background-color;
+    transition-duration: .15s;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 input[type='checkbox'] {
     background-color: var(--color-gray-3);
+    background-image: url(svg/check.svg);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 0 0;
     border-radius: .3rem;
     width: 1rem;
     height: 1rem;
@@ -237,9 +243,6 @@ input[type='checkbox'] {
 }
 input[type='checkbox']:checked {
     background-color: var(--color-twitch);
-    background-image: url(svg/check.svg);
-    background-repeat: no-repeat;
-    background-position: 50% 50%;
     background-size: auto 50%;
 }
 
