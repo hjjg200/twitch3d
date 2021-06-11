@@ -2,6 +2,7 @@
 <html>
     <head>
         <title>Twitch3D</title>
+        <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta property="og:title" content="Twitch3D"/>
@@ -1015,7 +1016,8 @@ class Window {
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
         const top0 = rect0.y; // Get the shown position
-        const left0 = (win.isMaximized(false) ? mouseX0 - width0/2 : rect0.x); // When maximized get middle position
+        let left0 = rect0.x;
+        const left0_alt = mouseX0 - width0/2;
         const connectedTo0 = {...win.connectedTo};
         const snapDist = Rem.fromPixel(10);
         const snapDgnDist = 1.41 * snapDist * 3; // Diagnoal distance is more generous
@@ -1050,6 +1052,15 @@ class Window {
 
         const ignoreMaximizedThreshold = Rem.fromPixel(10);
 
+        const tok = lrWise === 0 ? tbWise >= 0 : tbWise === 1;
+        const lok = tbWise === 0 ? lrWise >= 0 : lrWise === 1;
+        const wok = lrWise !== 0;
+        const hok = tbWise !== 0;
+        const move = tbWise === 0 && lrWise === 0;
+
+        // class
+        el.classList.add(move ? "in-move" : "in-resize");
+
         // Show current connections
         Window.showConnectionsIndicator(win.connections());
 
@@ -1074,8 +1085,20 @@ class Window {
             changed = changed || (dx !== 0 || dy !== 0);
             if(!changed) return;
             farthest = Math.max(farthest, d);
-            if(win.isMaximized(false) && farthest <= ignoreMaximizedThreshold) return;
-            if(win.isMaximized(false)) win.unmaximize();
+            if(win.isMaximized(false)) {
+                const maxXAxis = win.element.matches(".maximized-xAxis");
+                const maxYAxis = win.element.matches(".maximized-yAxis");
+                if((maxXAxis && wok) || (maxYAxis && hok)) {
+                    if(farthest <= ignoreMaximizedThreshold) return;
+                    left0 = left0_alt;
+                    win.unmaximize();
+                } else if((maxXAxis && lok) || (maxYAxis && tok)) {
+                    if(maxXAxis ? (Math.abs(dx) > ignoreMaximizedThreshold) : (Math.abs(dy) > ignoreMaximizedThreshold)) {
+                        left0 = left0_alt;
+                        win.unmaximize();
+                    }
+                }
+            }
             // TODO: xAxis maximized left
 
             // 0,0 = t,l only snap t,l
@@ -1092,14 +1115,6 @@ class Window {
             // lrWise === 0 && tbWise !== -1 => t
             // lrWise !== 0 => w
             let [top1, left1, width1, height1] = [top0, left0, width0, height0];
-            const tok = lrWise === 0 ? tbWise >= 0 : tbWise === 1;
-            const lok = tbWise === 0 ? lrWise >= 0 : lrWise === 1;
-            const wok = lrWise !== 0;
-            const hok = tbWise !== 0;
-            const move = tbWise === 0 && lrWise === 0;
-
-            // class
-            el.classList.add(move ? "in-move" : "in-resize");
 
             top1 += (tok || move) ? dy : 0;
             left1 += (lok || move) ? dx : 0;
@@ -1233,7 +1248,7 @@ class Window {
         return [tb, lr];
     }
     static connectionsRect(connections, actual) {
-        const values = Object.values(connections);
+        const values = Object.values(connections).filter(v => !v.isMaximized(true)); // Exclude fully maximized ones
         const rects = values.map(v => v.rect(actual));
         const rect = {
             top: Math.min(...rects.map(v => v.top)),
