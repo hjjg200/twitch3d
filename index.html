@@ -589,6 +589,7 @@ class DLL {
         delete this._map[key];
     }
     get(key) {
+        if(!(key in this._map)) return null;
         return this._map[key].value;
     }
     put(key, value) {
@@ -812,7 +813,6 @@ class Window {
     maximize(xAxis/*: boolean*/, yAxis/*: boolean*/) {
         if(this.isMaximized(false)) {
             this.unmaximize();
-            this.dispatchEvent(new Event("change"));
             return;
         }
         if(xAxis && yAxis) {
@@ -1338,7 +1338,7 @@ document.addEventListener("contextmenu", (ev) => {
     ctxMenu.style.left = Rem.toString(mouseX + Rem.fromPixel(3));
 });
 document.addEventListener("mousedown", (ev) => {
-    disableIframeStreams();
+    disableIframes();
     if(!isContainedIn(ev.target, ctxMenu)) {
         ctxMenu.style.display = "";
     }
@@ -1431,6 +1431,24 @@ const disableIframes = () => {
         el.classList.remove("iframe-enabled");
     }
     iframeEnabledWindow = null;
+    // Store twitch options
+    for(const id of Object.keys(twitchPlayers)) {
+        const win = Window.windows.get(id);
+        if(win === null) {
+            delete twitchPlayers[id];
+            continue;
+        }
+        const player = twitchPlayers[id];
+        const maximized = win.isMaximized(true);
+        const options = twitchComponents[id].options;
+        if(maximized) {
+            options.maximizedVolume = player.getVolume();
+            options.maximizedQuality = player.getQuality();
+        } else {
+            options.volume = player.getVolume();
+            options.quality = player.getQuality();
+        }
+    }
     storeTwitchSerialization();
 }
 
@@ -1449,7 +1467,7 @@ document.addEventListener("mouseover", (ev) => {
 
 // Twitch methods
 const defaultTwitchOptions = {
-    volume: 0.5,
+    volume: 0.33,
     quality: "auto",
     maximizedVolume: 1,
     maximizedQuality: "chunked"
@@ -1464,17 +1482,18 @@ const interpretTwitchComponents = (serialization) => {
     for(const key of Object.keys(obj)) {
         const each = obj[key];
         const win = Window.windows.get(key);
-        if(win === null) return false;
+        if(win === null) {
+            continue;
+        }
         addTwitchComponent(win, each.channel, each.chat, each.options);
     }
-    return true;
+    storeTwitchSerialization();
 };
 const addTwitchComponent = (win, channel, chat, options) => {
-    const id = win.contentElement.id;
     win.setTitle(`${channel}`);
     options = {...defaultTwitchOptions, ...options};
     if(!chat) {
-        const player = new Twitch.Player(id, {
+        const player = new Twitch.Player(win.contentElement.id, {
             channel,
             parent: [window.location.hostname]
         });
@@ -1497,6 +1516,18 @@ const addTwitchComponent = (win, channel, chat, options) => {
             win.element.classList.add("twitch-offline");
         });
         win.addEventListener("maximize", () => {
+            // Store old options
+            const current = win.isMaximized(true);
+            if(current) {
+                // Store unmaximized settings
+                options.volume = player.getVolume();
+                options.quality = player.getQuality();
+            } else {
+                options.maximizedVolume = player.getVolume();
+                options.maximizedQuality = player.getQuality();
+            }
+            storeTwitchSerialization();
+            //
             player.setOptions();
         });
     } else {
