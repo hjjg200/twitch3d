@@ -5,6 +5,7 @@ Watch multiple streams and move or scale them as you please.
 ## Known Issues
 
 - Embedded Twitch players tend to show some purple screen due to Twitch's embedding policies. https://discuss.dev.twitch.tv/t/getting-a-message-on-my-embeds-that-goes-away-after-a-while/29592
+- Autoplayed players start muted in Chromes
 
 ## TODO
 - [x] Make `Rem` class for clean px and rem management
