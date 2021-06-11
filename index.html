@@ -1478,7 +1478,7 @@ const closeModal = (modal) => {
         // Reset
         streamer.value = "";
         withChat.checked = false;
-        modalAddStream.style.display = "";
+        closeModal(modalAddStream);
     };
     modalAddStream.addEventListener("modalopen", (ev) => {
         [o_mouseX, o_mouseY] = [mouseX, mouseY];
