@@ -1524,6 +1524,7 @@ const disableIframes = () => {
 const enableIframe = (win) => {
     disableIframes();
     iframeEnabledWindow = win;
+    win.contentElement.querySelector("iframe").focus();
     win.element.classList.add("iframe-enabled");
 };
 
