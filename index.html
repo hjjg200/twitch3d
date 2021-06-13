@@ -272,7 +272,7 @@ input[type='text']:hover {
 }
 input[type='text']:focus {
     box-shadow: 0 0 0 .125rem var(--color-twitch-alt) inset;
-    background: var(--color-gray-2);
+    background: var(--color-background-3);
 }
 
 #modal-add-stream #input-streamer {
@@ -540,8 +540,9 @@ const locales = {
         "#btn-add-stream": "채널 추가",
         "#btn-fullscreen": "전체화면",
         "#btn-exit-fullscreen": "전체화면 나가기",
-        "#add-stream-modal h2": "채널 추가",
-        "#add-stream-modal h2 + p": "추가할 스트리머의 Twitch 아이디를 입력하세요",
+        "#btn-unmute-all": "모두 뮤트 끄기",
+        "#modal-add-stream h2": "채널 추가",
+        "#modal-add-stream h2 + p": "추가할 스트리머의 Twitch 아이디를 입력하세요",
         ".button-ok": "확인",
         ".button-cancel": "취소"
     }
@@ -1498,6 +1499,7 @@ const disableIframes = () => {
     const winEls = document.querySelectorAll(".window.iframe-enabled");
     for(const el of winEls.values()) {
         el.classList.remove("iframe-enabled");
+        el.querySelector("iframe").blur();
     }
     iframeEnabledWindow = null;
     // Store twitch options
