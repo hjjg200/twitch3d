@@ -32,11 +32,14 @@ https://hjjg200.github.io/twitch3d
 - [ ] Better handling of auto-mute policy for better UX
 - [ ] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
-- [ ] Window specific context menu
+- [x] Window specific context menu
     - Maximize
     - Move backwards
-    - Options (volume, quality, opacity)
+    - Options (volume, quality)
     - Close
-- [ ] `mouseup` -> `click` for windows controls
+- [ ] Use epsilon for anchor evaluation
+- [ ] Implement `alternate when maximized`
+- [ ] Add opacity to window options
+- [x] `mouseup` -> `click` for windows controls
 - [ ] Discord for communication
 - [ ] Firefox, Edge, and Safari support

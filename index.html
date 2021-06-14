@@ -25,6 +25,7 @@
     --color-twitch-bright: #a66bff;
     --color-twitch-alt: #63ffc0;
     --color-twitch-alt-bright: #90ffd3;
+    --color-background-2: #1E0F53;
     --color-background-3: #19074d;
     --color-gray-0: #F0F0FF; /* 0: most vivid */
     --color-gray-1: #7548bd;
@@ -168,6 +169,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 #context-menu:not(.for-player) li.player-specific {display: none;}
 #context-menu.for-muted-player #btn-window-mute {display: none;}
 #context-menu:not(.for-muted-player) #btn-window-unmute {display: none;}
+#context-menu.for-fully-maximized-window #btn-window-send-to-back {display: none;}
 #context-menu .context-menu-separator {
     padding: .2rem 0;
 }
@@ -308,6 +310,12 @@ input[type='range']::-webkit-slider-thumb {
 #modal-add-stream .inputs {
     margin-top: 3rem;
     margin-bottom: 1rem;
+}
+
+#window-options-maximized {
+    background-color: var(--color-background-2);
+    border-radius: .4rem;
+    padding: .5rem;
 }
 
 /* WINDOW */
@@ -603,21 +611,23 @@ body:not(.still-cursor) .window.focused {
 
                         </div>
                     </label>
-                    <div class="frame frame-vertical">
+                    <div id="window-options-maximized" class="frame frame-vertical">
                         <label for="checkbox-alternate-maximized">
                             <input type="checkbox" id="checkbox-alternate-maximized">
                             <span>Alternate When Maximized</span>
                         </label>
-                        <label for="range-volume-maximized">
-                            <span>Volume</span>
-                            <input type="range" id="range-volume-maximized" min="0" max="100" value="50">
-                        </label>
-                        <label for="dropdown-quality-maximized-select">
-                            <span>Quality</span>
-                            <div id="dropdown-quality-maximized">
-    
-                            </div>
-                        </label>
+                        <div id="window-options-maximized-inputs" class="frame frame-vertical">
+                            <label for="range-volume-maximized">
+                                <span>Volume</span>
+                                <input type="range" id="range-volume-maximized" min="0" max="100" value="50">
+                            </label>
+                            <label for="dropdown-quality-maximized-select">
+                                <span>Quality</span>
+                                <div id="dropdown-quality-maximized">
+        
+                                </div>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="frame frame-ralign modal-buttons">
@@ -1829,10 +1839,10 @@ const closeModal = (modal) => {
     });
 
     modalWindowOptions.addEventListener("modalopen", () => {
-        selectedWindow = Window.windows.get(modalWindowOptions.getAttribute("data-for"))
+        selectedWindow = Window.windows.get(modalWindowOptions.getAttribute("data-for"));
         const win = selectedWindow;
         const player = twitchPlayers[win.id];
-        const qualities = player.getQualities();
+        const qualities = player.getQualities().filter(v => v.group !== "auto" && v.group !== "chunked");
         const quality = twitchComponents[win.id].options.quality;
         const maximizedQuality = twitchComponents[win.id].options.maximizedQuality;
         const volume = twitchComponents[win.id].options.volume;
@@ -1840,10 +1850,19 @@ const closeModal = (modal) => {
 
         forCancel = {quality, volume, maximizedQuality, maximizedVolume};
 
-        const qitems = [];
+        const qitems = [
+            {name: "Auto", value: "auto"},
+            {name: "Source", value: "chunked"}
+        ];
 
         for(const quality of qualities) {
             qitems.push({name: quality.name, value: quality.group});
+        }
+        if(qualities.length === 0) {
+            if(maximizedQuality !== "auto" && maximizedQuality !== "chunked")
+                qitems.push({name: maximizedQuality, value: maximizedQuality});
+            if(quality !== "auto" && quality !== "chunked")
+                qitems.push({name: quality, value: quality});
         }
 
         const qmaxitems = [];
@@ -1985,7 +2004,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
             const muted0 = player.getMuted();
             if(muted0 === muted) return;
             originalSetMuted(muted);
-            if(muted === false && player.getMuted()) {
+            if(muted === false && player.getMuted() === true) {
                 alert("Failed to unmute the player! You have to unmute it yourself due to your browser's security policy.");
             }
         };
