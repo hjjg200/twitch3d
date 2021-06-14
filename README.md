@@ -28,9 +28,15 @@ https://hjjg200.github.io/twitch3d
 - [x] Remember volume and quality when maximized and normal separately
 - [x] Change from non-interactive iframe to interactive embedded players
 - [ ] Fix group handlers for fully maximized windows
-- [ ] Maximizing transition
+- [x] Maximizing transition
 - [ ] Better handling of auto-mute policy for better UX
 - [ ] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
+- [ ] Window specific context menu
+    - Maximize
+    - Move backwards
+    - Options (volume, quality, opacity)
+    - Close
+- [ ] `mouseup` -> `click` for windows controls
 - [ ] Discord for communication
 - [ ] Firefox, Edge, and Safari support
