@@ -165,8 +165,9 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     display: block;
 }
 #context-menu:not(.for-window) li.window-specific {display: none;}
-#context-menu.for-muted-window #btn-window-mute {display: none;}
-#context-menu:not(.for-muted-window) #btn-window-unmute {display: none;}
+#context-menu:not(.for-player) li.player-specific {display: none;}
+#context-menu.for-muted-player #btn-window-mute {display: none;}
+#context-menu:not(.for-muted-player) #btn-window-unmute {display: none;}
 #context-menu .context-menu-separator {
     padding: .2rem 0;
 }
@@ -534,13 +535,13 @@ body:not(.still-cursor) .window.focused {
         <div id="context-menu">
             <div id="context-menu-content">
                 <ul id="context-menu-items">
-                    <li class="window-specific">
+                    <li class="window-specific player-specific">
                         <button id="btn-window-mute">Mute</button>
                     </li>
-                    <li class="window-specific">
+                    <li class="window-specific player-specific">
                         <button id="btn-window-unmute">Unmute</button>
                     </li>
-                    <li class="window-specific">
+                    <li class="window-specific player-specific">
                         <button id="btn-window-options">Options</button>
                     </li>
                     <li class="window-specific">
@@ -875,6 +876,22 @@ class DLL {
             oldHead.next = this.head;
         }
     }
+    shove(key, value) {
+        let tail = this.head;
+        if(tail === null) {
+            this.put(key, value);
+            return;
+        }
+        while(tail.prev !== null) {
+            tail = tail.prev;
+        }
+        this._map[key] = {
+            value,
+            next: tail,
+            prev: null
+        };
+        tail.prev = this._map[key];
+    }
 }
 
 // Class Window
@@ -1116,18 +1133,27 @@ class Window {
         // Move top level
         Window.windows.remove(this.id);
         Window.windows.put(this.id, this);
-        let node = Window.windows.head;
-        let headIndex = Window.windows.length + Window.baseZIndex - 1;
-        while(node !== null) {
-            node.value.element.style.zIndex = `${headIndex--}`;
-            node.value.blur();
-            node = node.prev;
-        }
+        Window._resetZIndexes();
         //
         this.element.classList.add("focused");
     }
     blur() {
         this.element.classList.remove("focused");
+    }
+    sendToBack() {
+        // Move bottom level
+        Window.windows.remove(this.id);
+        Window.windows.shove(this.id, this);
+        Window._resetZIndexes();
+    }
+    static _resetZIndexes() {
+        let node = this.windows.head;
+        let headIndex = this.windows.length + this.baseZIndex - 1;
+        while(node !== null) {
+            node.value.element.style.zIndex = `${headIndex--}`;
+            node.value.blur();
+            node = node.prev;
+        }
     }
     rect(actual) {
         const sty = this.element.style;
@@ -1591,15 +1617,6 @@ window.addEventListener("resize", () => {
     }, 16);
 });
 
-const twitchQualityToNumber = q => {
-    q = q.trim().toLocaleLowerCase();
-    if(q === "auto") return 0;
-    else if(q === "chunked") return 32000 * 120;
-    const s = q.split("p").map(v => parseInt(v));
-    const fps = s[1] || 30;
-    return s[0] * s[1];
-};
-const twitchQualityComparator = (lhs, rhs) => rhs - lhs;
 const _getMatchingParent = (element, parent, inclusive) => {
     const f = (typeof parent === "string")
         ? rhs => rhs.matches && rhs.matches(parent)
@@ -1619,6 +1636,7 @@ const isContainedInSelector = (element, selector) => _getMatchingParent(element,
 // Menu
 const ctxMenu = document.getElementById("context-menu");
 const ctxItems = document.getElementById("context-menu-items");
+let ctxMenuTarget = null;
 const modals = document.querySelectorAll(".modal");
 const modalAddStream = document.getElementById("modal-add-stream");
 const modalWindowOptions = document.getElementById("modal-window-options");
@@ -1636,11 +1654,20 @@ document.addEventListener("contextmenu", (ev) => {
 
     ctxMenu.style.display = "block";
 
-    const win = getParentInclusive(ev.target, ".window");
+    const winEl = getParentInclusive(ev.target, ".window");
+    const win = winEl !== null ? Window.windows.get(winEl.id) : null;
     ctxMenu.classList[win !== null ? "add" : "remove"]("for-window");
+    ctxMenuTarget = win;
+
     if(win !== null) {
         ctxMenu.setAttribute("data-for", win.id);
-        ctxMenu.classList[twitchPlayers[win.id].getMuted() ? "add" : "remove"]("for-muted-window");
+        ctxMenu.classList[win.isMaximized(true) ? "add" : "remove"]("for-fully-maximized-window");
+
+        const player = twitchPlayers[win.id] || null;
+        ctxMenu.classList[player !== null ? "add" : "remove"]("for-player");
+        if(player !== null) {
+            ctxMenu.classList[player.getMuted() ? "add" : "remove"]("for-muted-player");
+        }
     } else {
         ctxMenu.removeAttribute("data-for");
     }
@@ -1666,9 +1693,21 @@ document.addEventListener("mouseup", (ev) => {
 ctxItems.addEventListener("mouseup", (ev) => {
     ctxMenu.style.display = "";
 });
+btnWinMute.addEventListener("mouseup", (ev) => {
+    twitchPlayers[ctxMenuTarget.id].setMuted(true);
+});
+btnWinUnmute.addEventListener("mouseup", (ev) => {
+    twitchPlayers[ctxMenuTarget.id].setMuted(false);
+});
 btnWinOptions.addEventListener("mouseup", (ev) => {
     modalWindowOptions.setAttribute("data-for", ctxMenu.getAttribute("data-for"));
     openModal(modalWindowOptions);
+});
+btnWinSendToBack.addEventListener("mouseup", (ev) => {
+    ctxMenuTarget.sendToBack();
+});
+btnWinClose.addEventListener("mouseup", (ev) => {
+    ctxMenuTarget.close();
 });
 btnAddStream.addEventListener("mouseup", (ev) => {
     openModal(modalAddStream);
@@ -1743,8 +1782,8 @@ const closeModal = (modal) => {
 }
 
 { // Window Options Modal
-    const btnOK = modalAddStream.querySelector(".button-ok");
-    const btnCancel = modalAddStream.querySelector(".button-cancel");
+    const btnOK = modalWindowOptions.querySelector(".button-ok");
+    const btnCancel = modalWindowOptions.querySelector(".button-cancel");
     const rangeVolume = document.getElementById("range-volume");
     const rangeVolumeMaximized = document.getElementById("range-volume-maximized");
     const dropdownQuality = createDropdown("dropdown-quality");
@@ -1793,7 +1832,7 @@ const closeModal = (modal) => {
         selectedWindow = Window.windows.get(modalWindowOptions.getAttribute("data-for"))
         const win = selectedWindow;
         const player = twitchPlayers[win.id];
-        const qualities = player.getQualities().filter(v => v.group !== "auto");
+        const qualities = player.getQualities();
         const quality = twitchComponents[win.id].options.quality;
         const maximizedQuality = twitchComponents[win.id].options.maximizedQuality;
         const volume = twitchComponents[win.id].options.volume;
@@ -1801,12 +1840,11 @@ const closeModal = (modal) => {
 
         forCancel = {quality, volume, maximizedQuality, maximizedVolume};
 
-        const qitems = [{name: "Auto", value: "auto"}];
+        const qitems = [];
 
         for(const quality of qualities) {
-            qitems.push({name: quality.name, value: quality.name});
+            qitems.push({name: quality.name, value: quality.group});
         }
-        qitems.push({name: "Source", value: "chunked"});
 
         const qmaxitems = [];
         for(const each of qitems) qmaxitems.push({...each});
@@ -1940,8 +1978,17 @@ const addTwitchComponent = (win, channel, chat, options) => {
             win.element.classList.add("twitch-offline");
             player.online = false;
         });
+        const originalSetMuted = player.setMuted;
         const originalSetVolume = player.setVolume;
         const originalSetQuality = player.setQuality;
+        player.setMuted = (muted) => {
+            const muted0 = player.getMuted();
+            if(muted0 === muted) return;
+            originalSetMuted(muted);
+            if(muted === false && player.getMuted()) {
+                alert("Failed to unmute the player! You have to unmute it yourself due to your browser's security policy.");
+            }
+        };
         player.setVolume = (volume) => {
             if(player.online === false) return;
             originalSetVolume(volume);
