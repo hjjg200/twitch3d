@@ -163,6 +163,17 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 #context-menu ul li {
     display: block;
 }
+#context-menu:not(.for-window) li.window-specific {display: none;}
+#context-menu.for-muted-window #btn-window-mute {display: none;}
+#context-menu:not(.for-muted-window) #btn-window-unmute {display: none;}
+#context-menu .context-menu-separator {
+    padding: .2rem 0;
+}
+#context-menu .context-menu-separator hr {
+    height: 1px;
+    width: 100%;
+    background-color: var(--color-gray-3);
+}
 #context-menu button {
     background: none;
     border-radius: 0;
@@ -224,11 +235,9 @@ body:not(.fullscreen) #btn-exit-fullscreen {
 }
 
 label {
-    display: flex;
-    vertical-align: middle;
-}
-label > *:not(:last-child) {
-    margin-right: .3rem;
+    display: flex !important;
+    align-items: center;
+    gap: .3rem;
 }
 
 input,
@@ -272,6 +281,22 @@ input[type='text']:hover {
 input[type='text']:focus {
     box-shadow: 0 0 0 .125rem var(--color-twitch-alt) inset;
     background: var(--color-gray-2);
+}
+input[type='range'] {
+    width: 100%;
+    height: .4rem;
+    border-radius: .5rem;
+    background-color: var(--color-gray-2);
+}
+input[type='range']::-webkit-slider-thumb {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    background: var(--color-gray-0);
+    border-radius: 50%;
+    box-shadow: 0 .2rem .4rem var(--color-shadow);
 }
 
 #modal-add-stream #input-streamer {
@@ -473,6 +498,24 @@ body:not(.still-cursor) .window.focused {
     z-index: 1000;
     pointer-events: none;
 }
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+}
+.dropdown select {
+    display: none;
+}
+.dropdown .dropdown-list {
+    display: none;
+    position: absolute;
+    background-color: var(--color-background-3);
+    color: var(--color-gray-0);
+    list-style: none;
+}
+.dropdown.open .dropdown-list {
+    display: block;
+}
         </style>
     </head>
     <body>
@@ -491,6 +534,24 @@ body:not(.still-cursor) .window.focused {
         <div id="context-menu">
             <div id="context-menu-content">
                 <ul id="context-menu-items">
+                    <li class="window-specific">
+                        <button id="btn-window-mute">Mute</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-unmute">Unmute</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-options">Options</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-send-to-back">Send to Back</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-close">Close</button>
+                    </li>
+
+                    <li class="window-specific context-menu-separator"><hr/></li>
+
                     <li>
                         <button id="btn-add-stream">Add Channel</button> 
                     </li>
@@ -501,14 +562,12 @@ body:not(.still-cursor) .window.focused {
                         <button id="btn-exit-fullscreen">Exit Fullscreen</button>
                     </li>
                     <li>
-                        <button id="btn-unmute-all">Unmute All</button>
-                    </li>
-                    <li>
                         <button id="btn-github">GitHub</button>
                     </li>
                 </ul>
             </div>
         </div>
+
         <div id="modal-add-stream" class="modal">
             <div class="modal-content">
                 <h2>Add Channel</h2>
@@ -521,6 +580,44 @@ body:not(.still-cursor) .window.focused {
                     <label for="input-streamer">
                         <input type="text" id="input-streamer">
                     </label>
+                </div>
+                <div class="frame frame-ralign modal-buttons">
+                    <button class="button button-ok">OK</button>
+                    <button class="button button-cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-window-options" class="modal">
+            <div class="modal-content">
+                <h2>Options</h2>
+                <div class="frame frame-vertical">
+                    <label for="range-volume">
+                        <span>Volume</span>
+                        <input type="range" id="range-volume" min="0" max="100" value="50">
+                    </label>
+                    <label for="dropdown-quality-select">
+                        <span>Quality</span>
+                        <div id="dropdown-quality">
+
+                        </div>
+                    </label>
+                    <div class="frame frame-vertical">
+                        <label for="checkbox-alternate-maximized">
+                            <input type="checkbox" id="checkbox-alternate-maximized">
+                            <span>Alternate When Maximized</span>
+                        </label>
+                        <label for="range-volume-maximized">
+                            <span>Volume</span>
+                            <input type="range" id="range-volume-maximized" min="0" max="100" value="50">
+                        </label>
+                        <label for="dropdown-quality-maximized-select">
+                            <span>Quality</span>
+                            <div id="dropdown-quality-maximized">
+    
+                            </div>
+                        </label>
+                    </div>
                 </div>
                 <div class="frame frame-ralign modal-buttons">
                     <button class="button button-ok">OK</button>
@@ -561,6 +658,139 @@ const createElement = (tag, ...classes) => {
     const element = document.createElement(tag);
     element.classList.add(...classes);
     return element;
+};
+
+// Range input style
+const ranges = document.querySelectorAll("input[type='range']");
+const styleRangeFill = range => {
+    const value = parseInt(range.value);
+    range.style.background = `linear-gradient(90deg, var(--color-twitch-alt) ${value}%, var(--color-gray-2) ${value}%)`;
+};
+for(const range of ranges.values()) {
+    styleRangeFill(range);
+    range.addEventListener("input", () => {
+        styleRangeFill(range);
+    });
+}
+
+// Dropdown
+const createDropdown = (containerId, initialItems) => {
+    const dropdown = document.getElementById(containerId);
+    if(dropdown === null) return;
+
+    dropdown.classList.add("dropdown");
+    const button = createElement("button", "dropdown-button");
+    const list = createElement("ul", "dropdown-list");
+    const select = createElement("select");
+    let ary = [];
+
+    document.addEventListener("mouseup", ev => {
+        if(getParentInclusive(ev.target, dropdown) === null) dropdown.close();
+        else dropdown.isOpen() ? dropdown.close() : dropdown.open();
+    });
+
+    select.id = `${containerId}-select`;
+    select.addEventListener("change", (ev) => {
+        dropdown.dispatchEvent(new Event(ev.type, ev));
+    });
+
+    dropdown.appendChild(select);
+    dropdown.appendChild(button);
+    dropdown.appendChild(list);
+
+    dropdown.indexOfValue = value => {
+        for(let i = 0; i < ary.length; i++) {
+            if(ary[i].value === value) return i;
+        }
+        return -1;
+    };
+
+    dropdown.addItems = (...items) => {
+        let selected = null;
+        for(const each of items) {
+            const name = each.name || each;
+            const value = each.value || each;
+
+            const option = createElement("option");
+            const li = createElement("li");
+
+            option.value = value;
+            li.setAttribute("data-value", value);
+            li.textContent = name;
+
+            select.appendChild(option);
+            list.appendChild(li);
+
+            const item = {
+                name, value, li, option
+            };
+
+            li.addEventListener("mouseup", ev => {
+                dropdown.setItem(item);
+            });
+
+            if(each.selected && each.selected === true) selected = item;
+
+            ary.push(item);
+        }
+        if(selected !== null) dropdown._setItem(selected);
+    };
+
+    dropdown.removeAllItems = () => {
+        for(const li of list.querySelectorAll("li").values()) {
+            li.parentNode.removeChild(li);
+        }
+        for(const option of select.querySelectorAll("option").values()) {
+            option.parentNode.removeChild(option);
+        }
+        button.textContent = "";
+        ary = [];
+    };
+
+    dropdown._setItem = item => {
+        button.textContent = item.name;
+        for(const li of list.querySelectorAll("li").values()) {
+            li.classList.remove("selected");
+        }
+        item.li.classList.add("selected");
+        select.value = item.value;
+    };
+
+    dropdown._setItemIndex = idx => {
+        dropdown._setItem(ary[idx]);
+    };
+
+    dropdown.setItemIndex = idx => {
+        dropdown._setItemIndex(idx);
+        dropdown.dispatchEvent(new Event('change'));
+    };
+
+    dropdown.setItem = item => {
+        dropdown._setItem(item);
+        dropdown.dispatchEvent(new Event('change'));
+    };
+
+    dropdown.open = () => {
+        dropdown.classList.add("open");
+    };
+
+    dropdown.isOpen = () => dropdown.matches(".open");
+
+    dropdown.close = () => {
+        dropdown.classList.remove("open");
+    };
+
+    Object.defineProperty(dropdown, 'value', {
+        get() {return select.value;}
+    });
+
+    // Post
+    if(initialItems) {
+        dropdown.addItems(...initialItems);
+    }
+
+    return dropdown;
+
 };
 
 // Mouse tracker
@@ -736,10 +966,10 @@ class Window {
         title.appendChild(titleText);
         titleBarRelative.appendChild(title);
 
-        btnClose.addEventListener("mouseup", ((ev) => {
+        btnClose.addEventListener("click", ((ev) => {
             if(ev.button === 0) this.close();
         }).bind(this));
-        btnMaximize.addEventListener("mouseup", ((ev) => {
+        btnMaximize.addEventListener("click", ((ev) => {
             if(ev.button === 0) this.maximize(true, true);
         }).bind(this));
         title.addEventListener("dblclick", ((ev) => {
@@ -1360,38 +1590,60 @@ window.addEventListener("resize", () => {
     }, 16);
 });
 
-const isContainedIn = (element, parent) => {
-    if(element === parent) return true;
+const twitchQualityToNumber = q => {
+    q = q.trim().toLocaleLowerCase();
+    if(q === "auto") return 0;
+    else if(q === "chunked") return 32000 * 120;
+    const s = q.split("p").map(v => parseInt(v));
+    const fps = s[1] || 30;
+    return s[0] * s[1];
+};
+const twitchQualityComparator = (lhs, rhs) => rhs - lhs;
+const _getMatchingParent = (element, parent, inclusive) => {
+    const f = (typeof parent === "string")
+        ? rhs => rhs.matches && rhs.matches(parent)
+        : rhs => rhs === parent;
+    if(inclusive && f(element)) return element;
     let n = element.parentNode;
     while(n !== null) {
-        if(n === parent) return true;
+        if(f(n)) return n;
         n = n.parentNode;
     }
-    return false;
-}
-const isContainedInSelector = (element, selector) => {
-    if(element.matches(selector)) return true;
-    let n = element.parentNode;
-    while(n !== null && n.matches) {
-        if(n.matches(selector)) return true;
-        n = n.parentNode;
-    }
-    return false;
-}
+    return null;
+};
+const getParentInclusive = (element, parent) => _getMatchingParent(element, parent, true);
+const isContainedIn = (element, parent) => _getMatchingParent(element, parent, true) !== null;
+const isContainedInSelector = (element, selector) => _getMatchingParent(element, selector, true) !== null;
 
 // Menu
 const ctxMenu = document.getElementById("context-menu");
 const ctxItems = document.getElementById("context-menu-items");
 const modals = document.querySelectorAll(".modal");
 const modalAddStream = document.getElementById("modal-add-stream");
+const modalWindowOptions = document.getElementById("modal-window-options");
+const btnWinMute = document.getElementById("btn-window-mute");
+const btnWinUnmute = document.getElementById("btn-window-unmute");
+const btnWinOptions = document.getElementById("btn-window-options");
+const btnWinSendToBack = document.getElementById("btn-window-send-to-back");
+const btnWinClose = document.getElementById("btn-window-close");
 const btnAddStream = document.getElementById("btn-add-stream");
 const btnFullscreen = document.getElementById("btn-fullscreen");
 const btnExitFullscreen = document.getElementById("btn-exit-fullscreen");
-const btnUnmuteAll = document.getElementById("btn-unmute-all");
 const btnGitHub = document.getElementById("btn-github");
 document.addEventListener("contextmenu", (ev) => {
     ev.preventDefault();
+
     ctxMenu.style.display = "block";
+
+    const win = getParentInclusive(ev.target, ".window");
+    ctxMenu.classList[win !== null ? "add" : "remove"]("for-window");
+    if(win !== null) {
+        ctxMenu.setAttribute("data-for", win.id);
+        ctxMenu.classList[twitchPlayers[win.id].getMuted() ? "add" : "remove"]("for-muted-window");
+    } else {
+        ctxMenu.removeAttribute("data-for");
+    }
+
     ctxMenu.style.top = Rem.toString(mouseY - Rem.fromPixel(3));
     ctxMenu.style.left = Rem.toString(mouseX + Rem.fromPixel(3));
 });
@@ -1413,6 +1665,10 @@ document.addEventListener("mouseup", (ev) => {
 ctxItems.addEventListener("mouseup", (ev) => {
     ctxMenu.style.display = "";
 });
+btnWinOptions.addEventListener("mouseup", (ev) => {
+    modalWindowOptions.setAttribute("data-for", ctxMenu.getAttribute("data-for"));
+    openModal(modalWindowOptions);
+});
 btnAddStream.addEventListener("mouseup", (ev) => {
     openModal(modalAddStream);
 });
@@ -1422,15 +1678,6 @@ btnFullscreen.addEventListener("mouseup", (ev) => {
 btnExitFullscreen.addEventListener("mouseup", (ev) => {
     document.exitFullscreen();
 });
-btnUnmuteAll.addEventListener("mouseup", (ev) => {
-    for(const win of Window.windows.values()) {
-        if(win.id in twitchPlayers) {
-            const player = twitchPlayers[win.id];
-            player.setMuted(false);
-            player.setOptions();
-        }
-    }
-});
 btnGitHub.addEventListener("mouseup", (ev) => {
     window.open("https://github.com/hjjg200/twitch3d", "_blank");
 });
@@ -1438,13 +1685,14 @@ document.addEventListener("fullscreenchange", (ev) => {
     document.body.classList[document.fullscreenElement === null ? "remove" : "add"]("fullscreen");
 });
 const openModal = (modal) => {
-    if(modal.matches(".modal") === false) return false;
+    if(modal.matches(".modal") === false) return;
     modal.classList.add("open");
     modal.dispatchEvent(new Event("modalopen"));
 };
 const closeModal = (modal) => {
-    if(modal.matches(".modal") === false) return false;
+    if(modal.matches(".modal") === false) return;
     modal.classList.remove("open");
+    modal.dispatchEvent(new Event("modalclose"));
 };
 
 { // Add Stream Modal
@@ -1493,6 +1741,110 @@ const closeModal = (modal) => {
     });
 }
 
+{ // Window Options Modal
+    const btnOK = modalAddStream.querySelector(".button-ok");
+    const btnCancel = modalAddStream.querySelector(".button-cancel");
+    const rangeVolume = document.getElementById("range-volume");
+    const rangeVolumeMaximized = document.getElementById("range-volume-maximized");
+    const dropdownQuality = createDropdown("dropdown-quality");
+    const dropdownQualityMaximized = createDropdown("dropdown-quality-maximized");
+    const alternateCheck = document.getElementById("checkbox-alternate-maximized");
+    let selectedWindow = null;
+    let forCancel = {};
+
+    rangeVolume.addEventListener("input", () => {
+        const v = parseInt(rangeVolume.value) / 100;
+        twitchComponents[selectedWindow.id].options.volume = v;
+
+        if(selectedWindow.isMaximized(true)) return;
+
+        twitchPlayers[selectedWindow.id].setVolume(v);
+    });
+
+    rangeVolumeMaximized.addEventListener("input", () => {
+        const v = parseInt(rangeVolumeMaximized.value) / 100;
+        twitchComponents[selectedWindow.id].options.maximizedVolume = v;
+
+        if(selectedWindow.isMaximized(true) === false) return;
+
+        twitchPlayers[selectedWindow.id].setVolume(v);
+    });
+
+    dropdownQuality.addEventListener("change", () => {
+        const q = dropdownQuality.value;
+        twitchComponents[selectedWindow.id].options.quality = q;
+
+        if(selectedWindow.isMaximized(true)) return;
+
+        twitchPlayers[selectedWindow.id].setQuality(q);
+    });
+
+    dropdownQualityMaximized.addEventListener("change", () => {
+        const q = dropdownQualityMaximized.value;
+        twitchComponents[selectedWindow.id].options.maximizedQuality = q;
+
+        if(selectedWindow.isMaximized(true) === false) return;
+
+        twitchPlayers[selectedWindow.id].setQuality(q);
+    });
+
+    modalWindowOptions.addEventListener("modalopen", () => {
+        selectedWindow = Window.windows.get(modalWindowOptions.getAttribute("data-for"))
+        const win = selectedWindow;
+        const player = twitchPlayers[win.id];
+        const qualities = player.getQualities().filter(v => v.group !== "auto");
+        const quality = twitchComponents[win.id].options.quality;
+        const maximizedQuality = twitchComponents[win.id].options.maximizedQuality;
+        const volume = twitchComponents[win.id].options.volume;
+        const maximizedVolume = twitchComponents[win.id].options.maximizedVolume;
+
+        forCancel = {quality, volume, maximizedQuality, maximizedVolume};
+
+        const qitems = [{name: "Auto", value: "auto"}];
+
+        for(const quality of qualities) {
+            qitems.push({name: quality.name, value: quality.name});
+        }
+        qitems.push({name: "Source", value: "chunked"});
+
+        const qmaxitems = [];
+        for(const each of qitems) qmaxitems.push({...each});
+
+        for(const each of qitems) each.selected = each.value === quality;
+        for(const each of qmaxitems) each.selected = each.value === maximizedQuality;
+
+        dropdownQuality.removeAllItems();
+        dropdownQualityMaximized.removeAllItems();
+
+        dropdownQuality.addItems(...qitems);
+        dropdownQualityMaximized.addItems(...qmaxitems);
+
+        rangeVolume.value = Math.round(volume * 100);
+        rangeVolumeMaximized.value = Math.round(maximizedVolume * 100);
+        rangeVolume.dispatchEvent(new Event('input'));
+        rangeVolumeMaximized.dispatchEvent(new Event('input'));
+
+        alternateCheck.checked = (quality !== maximizedQuality || volume !== maximizedVolume);
+        alternateCheck.dispatchEvent(new Event('input'));
+    });
+
+    btnOK.addEventListener("mouseup", (ev) => {
+        closeModal(modalWindowOptions);
+    });
+    btnCancel.addEventListener("mouseup", (ev) => {
+        const player = twitchPlayers[selectedWindow.id];
+        twitchComponents[selectedWindow.id].options = forCancel;
+        if(selectedWindow.isMaximized(true)) {
+            player.setVolume(forCancel.maximizedVolume);
+            player.setQuality(forCancel.maximizedQuality);
+        } else {
+            player.setVolume(forCancel.volume);
+            player.setQuality(forCancel.quality);
+        }
+        closeModal(modalWindowOptions);
+    });
+}
+
 let iframeEnabledWindow = null;
 const disableIframes = () => {
     const winEls = document.querySelectorAll(".window.iframe-enabled");
@@ -1510,12 +1862,14 @@ const disableIframes = () => {
         const player = twitchPlayers[id];
         const maximized = win.isMaximized(true);
         const options = twitchComponents[id].options;
-        if(maximized) {
-            options.maximizedVolume = player.getVolume();
-            options.maximizedQuality = player.getQuality();
-        } else {
-            options.volume = player.getVolume();
-            options.quality = player.getQuality();
+        if(player.online === true) {
+            if(maximized) {
+                options.maximizedVolume = player.getVolume();
+                options.maximizedQuality = player.getQuality();
+            } else {
+                options.volume = player.getVolume();
+                options.quality = player.getQuality();
+            }
         }
     }
     storeTwitchSerialization();
@@ -1571,19 +1925,28 @@ const addTwitchComponent = (win, channel, chat, options) => {
             player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
         };
         twitchPlayers[win.id] = player;
-        player.addEventListener(Twitch.Player.READY, () => {
-            player.setOptions();
-        });
         player.addEventListener(Twitch.Player.ONLINE, () => {
             win.element.classList.remove("twitch-offline");
-            player.setMuted(false);
+            player.online = true;
+            player.setOptions();
         });
         player.addEventListener(Twitch.Player.PLAY, () => {
-            win.element.classList.remove("twitch-offline");
+            //win.element.classList.remove("twitch-offline");
         });
         player.addEventListener(Twitch.Player.OFFLINE, () => {
             win.element.classList.add("twitch-offline");
+            player.online = false;
         });
+        const originalSetVolume = player.setVolume;
+        const originalSetQuality = player.setQuality;
+        player.setVolume = (volume) => {
+            if(player.online === false) return;
+            originalSetVolume(volume);
+        };
+        player.setQuality = (quality) => {
+            if(player.online === false) return;
+            originalSetQuality(quality);
+        };
         win.addEventListener("maximize", (ev) => {
             // Store old options
             if(win.isMaximized(true)) {
