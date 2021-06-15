@@ -104,7 +104,7 @@ iframe {
 body.still-cursor main {
     cursor: none !important;
 }
-body.still-cursor .window.twitch-offline {
+body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis).twitch-offline {
     opacity: 0;
 }
 
@@ -1748,8 +1748,20 @@ document.addEventListener("contextmenu", (ev) => {
         ctxMenu.removeAttribute("data-for");
     }
 
-    ctxMenu.style.top = Rem.toString(mouseY - Rem.fromPixel(3));
-    ctxMenu.style.left = Rem.toString(mouseX + Rem.fromPixel(3));
+    // Position
+    const [ww, wh] = windowDimensions();
+    const rect = ctxMenu.getBoundingClientRect();
+    const [cw, ch] = [Rem.fromPixel(rect.width), Rem.fromPixel(rect.height)];
+    const six = Rem.fromPixel(6);
+    let top = mouseY - six;
+    let left = mouseX + six;
+    if(top < six) top = six;
+    else if(top + ch > wh - six) top = wh - ch - six;
+    if(left < six) left = six;
+    else if(left + cw > ww) left = mouseX - cw - six;
+
+    ctxMenu.style.top = Rem.toString(top);
+    ctxMenu.style.left = Rem.toString(left);
 });
 document.addEventListener("mousedown", (ev) => {
     disableIframes();
