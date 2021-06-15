@@ -27,22 +27,31 @@ https://hjjg200.github.io/twitch3d
 - [x] Make offline channels transparent when cursor is still
 - [x] Remember volume and quality when maximized and normal separately
 - [x] Change from non-interactive iframe to interactive embedded players
-- [ ] Fix group handlers for fully maximized windows
+- [x] `mouseup` -> `click` for windows controls
 - [x] Maximizing transition
+- [x] Window specific context menu
+- [x] Implement `alternate when maximized`
+- [x] Store changed info after changing options
+- [x] Prevent context menu from getting out of boundary
 - [ ] Better handling of auto-mute policy for better UX
 - [ ] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
-- [x] Window specific context menu
-    - Maximize
-    - Move backwards
-    - Options (volume, quality)
-    - Close
-- [ ] Use epsilon for anchor evaluation
-- [ ] Implement `alternate when maximized`
-- [x] Store changed info after changing options
-- [ ] Make temporary rect for fully maximized windows when grouping
-- [ ] Prevent context menu from getting out of boundary
+- [ ] Prevent dropdown menu from getting out of boundary
+- [ ] Player specific context menu
+    - Play/Stop
+    - Volume range
+    - Quality
+- [ ] Refine anchor feature
+    - [ ] Use epsilon for anchor evaluation
+    - [ ] Top-bottom anchor types: top, middle, bottom, top-bottom
+    - [ ] Left-right anchor types: left, middle, right, left-right
+    - [ ] Handling when resized
+        - Top, left: maintain top, left
+        - Middle: maintain position ratio but put it inside boundary
+        - Bottom, right: maintain bottom, right
+        - Top-bottom, left-right: maintain both by resizing the window
+- [ ] Fix group handlers for fully maximized windows
+    - [ ] Make temporary rect for fully maximized windows when grouping
 - [ ] Add opacity to window options
-- [x] `mouseup` -> `click` for windows controls
 - [ ] Discord for communication
 - [ ] Firefox, Edge, and Safari support
