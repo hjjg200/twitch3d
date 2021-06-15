@@ -226,7 +226,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     color: var(--color-gray-0);
     position: relative;
     font-size: .8rem;
-    padding: 1rem;
+    padding: 1.25rem;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -288,7 +288,7 @@ input[type='text']:focus {
 }
 input[type='range'] {
     width: 100%;
-    height: .4rem;
+    height: .375rem;
     border-radius: .5rem;
     background-color: var(--color-gray-2);
 }
@@ -296,8 +296,8 @@ input[type='range']::-webkit-slider-thumb {
     -moz-appearance: none;
     -webkit-appearance: none;
     appearance: none;
-    width: 1rem;
-    height: 1rem;
+    width: .9rem;
+    height: .9rem;
     background: var(--color-gray-0);
     border-radius: 50%;
     box-shadow: 0 .2rem .4rem var(--color-shadow);
@@ -312,10 +312,31 @@ input[type='range']::-webkit-slider-thumb {
     margin-bottom: 1rem;
 }
 
+#modal-window-options .modal-content {
+    width: 17rem;
+}
+#modal-window-options label[for='range-volume'],
+#modal-window-options label[for='range-volume-maximized'],
+#modal-window-options label[for='dropdown-quality-select'],
+#modal-window-options label[for='dropdown-quality-maximized-select'] {
+    line-height: 1.5rem;
+    justify-content: space-between;
+}
+#modal-window-options .dropdown-button {
+    min-width: 7rem;
+}
+#modal-window-options input[type='range'] {
+    width: 6rem;
+}
 #window-options-maximized {
     background-color: var(--color-background-2);
     border-radius: .4rem;
-    padding: .5rem;
+    padding: .75rem;
+    margin-top: .5rem;
+}
+#window-options-maximized-inputs.disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 /* WINDOW */
@@ -518,12 +539,55 @@ body:not(.still-cursor) .window.focused {
 .dropdown .dropdown-list {
     display: none;
     position: absolute;
-    background-color: var(--color-background-3);
+    background-color: var(--color-gray-3);
     color: var(--color-gray-0);
     list-style: none;
+    top: 0;
+    width: 100%;
+    border-radius: .25rem;
+    box-shadow: 0 .25rem .375rem var(--color-shadow);
+    overflow: hidden;
+    z-index: 2001;
 }
 .dropdown.open .dropdown-list {
     display: block;
+}
+.dropdown .dropdown-list li {
+    padding: 0 .75rem;
+    line-height: 2em;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.dropdown .dropdown-list li.selected {
+    color: var(--color-twitch-alt);
+}
+.dropdown .dropdown-list li:hover {
+    background-color: var(--color-gray-2);
+}
+.dropdown-button {
+    background-color: var(--color-gray-3);
+    font-weight: normal;
+    font-family: inherit;
+    line-height: inherit;
+    color: var(--color-gray-0);
+    padding: 0 2.5rem 0 .7rem;
+    border-radius: .25rem;
+    text-align: left;
+}
+.dropdown-button:hover {
+    background-color: var(--color-gray-2);
+}
+.dropdown-caret {
+    background-image: url(svg/caret.svg);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: auto 33%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 2rem;
+    height: 100%;
+    pointer-events: none;
 }
         </style>
     </head>
@@ -599,8 +663,8 @@ body:not(.still-cursor) .window.focused {
 
         <div id="modal-window-options" class="modal">
             <div class="modal-content">
-                <h2>Options</h2>
                 <div class="frame frame-vertical">
+                    <h2>Options</h2>
                     <label for="range-volume">
                         <span>Volume</span>
                         <input type="range" id="range-volume" min="0" max="100" value="50">
@@ -691,9 +755,10 @@ const createDropdown = (containerId, initialItems) => {
     if(dropdown === null) return;
 
     dropdown.classList.add("dropdown");
-    const button = createElement("button", "dropdown-button");
-    const list = createElement("ul", "dropdown-list");
     const select = createElement("select");
+    const button = createElement("button", "dropdown-button");
+    const caret = createElement("div", "dropdown-caret");
+    const list = createElement("ul", "dropdown-list");
     let ary = [];
 
     document.addEventListener("mouseup", ev => {
@@ -708,6 +773,7 @@ const createDropdown = (containerId, initialItems) => {
 
     dropdown.appendChild(select);
     dropdown.appendChild(button);
+    dropdown.appendChild(caret);
     dropdown.appendChild(list);
 
     dropdown.indexOfValue = value => {
@@ -1799,12 +1865,14 @@ const closeModal = (modal) => {
     const dropdownQuality = createDropdown("dropdown-quality");
     const dropdownQualityMaximized = createDropdown("dropdown-quality-maximized");
     const alternateCheck = document.getElementById("checkbox-alternate-maximized");
+    const inputsMaximized = document.getElementById("window-options-maximized-inputs");
     let selectedWindow = null;
     let forCancel = {};
 
     rangeVolume.addEventListener("input", () => {
         const v = parseInt(rangeVolume.value) / 100;
         twitchComponents[selectedWindow.id].options.volume = v;
+        if(alternateCheck.checked === false) matchBoth(true, false);
 
         if(selectedWindow.isMaximized(true)) return;
 
@@ -1823,6 +1891,7 @@ const closeModal = (modal) => {
     dropdownQuality.addEventListener("change", () => {
         const q = dropdownQuality.value;
         twitchComponents[selectedWindow.id].options.quality = q;
+        if(alternateCheck.checked === false) matchBoth(false, true);
 
         if(selectedWindow.isMaximized(true)) return;
 
@@ -1836,6 +1905,20 @@ const closeModal = (modal) => {
         if(selectedWindow.isMaximized(true) === false) return;
 
         twitchPlayers[selectedWindow.id].setQuality(q);
+    });
+
+    const matchBoth = (v, q) => {
+        if(v) {
+            rangeVolumeMaximized.value = rangeVolume.value;
+            rangeVolumeMaximized.dispatchEvent(new Event('input'));
+        }
+
+        if(q) dropdownQualityMaximized.setItemIndex(dropdownQualityMaximized.indexOfValue(dropdownQuality.value));
+    };
+
+    alternateCheck.addEventListener("input", () => {
+        inputsMaximized.classList[alternateCheck.checked ? "remove" : "add"]("disabled");
+        if(alternateCheck.checked === false) matchBoth(true, true);
     });
 
     modalWindowOptions.addEventListener("modalopen", () => {
@@ -1884,6 +1967,10 @@ const closeModal = (modal) => {
 
         alternateCheck.checked = (quality !== maximizedQuality || volume !== maximizedVolume);
         alternateCheck.dispatchEvent(new Event('input'));
+    });
+
+    modalWindowOptions.addEventListener("modalclose", (ev) => {
+        storeTwitchSerialization();
     });
 
     btnOK.addEventListener("mouseup", (ev) => {

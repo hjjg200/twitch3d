@@ -39,6 +39,9 @@ https://hjjg200.github.io/twitch3d
     - Close
 - [ ] Use epsilon for anchor evaluation
 - [ ] Implement `alternate when maximized`
+- [x] Store changed info after changing options
+- [ ] Make temporary rect for fully maximized windows when grouping
+- [ ] Prevent context menu from getting out of boundary
 - [ ] Add opacity to window options
 - [x] `mouseup` -> `click` for windows controls
 - [ ] Discord for communication
