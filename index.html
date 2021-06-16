@@ -1262,14 +1262,19 @@ class Window {
         const rect0 = this.rect(this.isMaximized(true));
         const rect1 = win1.rect(win1.isMaximized(true));
         // tb distance
-        let tb = 0;
-        if(rect1.bottom < rect0.top)      tb = rect0.top - rect1.bottom;
-        else if(rect1.top > rect0.bottom) tb = rect1.top - rect0.bottom;
+        let tb = -1;
+        if(rect1.bottom <= rect0.top)      tb = rect0.top - rect1.bottom;
+        else if(rect1.top >= rect0.bottom) tb = rect1.top - rect0.bottom;
         // lr distance
-        let lr = 0;
-        if(rect1.right < rect0.left)      lr = rect0.left - rect1.right;
-        else if(rect1.left > rect0.right) lr = rect1.left - rect0.right;
+        let lr = -1;
+        if(rect1.right <= rect0.left)      lr = rect0.left - rect1.right;
+        else if(rect1.left >= rect0.right) lr = rect1.left - rect0.right;
         //
+        if(tb === -1 && lr === -1) return -1; // Overlapping
+        else {
+            if(tb === -1) tb = 0;
+            if(lr === -1) lr = 0;
+        }
         let dist = Math.pow(tb*tb + lr*lr, 0.5);
         const epsilon = Rem.fromPixel(0.5);
         if(dist < epsilon) dist = 0;
@@ -1417,10 +1422,10 @@ class Window {
             tbDests.push({value: top1, owner: win1}, {value: top1 + rect1.height, owner: win1});
             lrDests.push({value: left1, owner: win1}, {value: left1 + rect1.width, owner: win1});
         }
-        const tDests = [{value: 0, owner: null}, ...tbDests];
-        const bDests = [{value: wh, owner: null}, ...tbDests];
-        const lDests = [{value: 0, owner: null}, ...lrDests];
-        const rDests = [{value: ww, owner: null}, ...lrDests];
+        const tDests = [...tbDests, {value: 0, owner: null}]; // Border snapping takes priority
+        const bDests = [...tbDests, {value: wh, owner: null}];
+        const lDests = [...lrDests, {value: 0, owner: null}];
+        const rDests = [...lrDests, {value: ww, owner: null}];
 
         const ignoreMaximizedThreshold = Rem.fromPixel(10);
 
@@ -1646,7 +1651,8 @@ let [ww0, wh0] = windowDimensions();
 window.addEventListener("resize", () => {
     if(windowResizeTimeout !== null) clearTimeout(windowResizeTimeout);
     windowResizeTimeout = setTimeout(() => {
-        // 
+
+        /*
         const [ww1, wh1] = windowDimensions();
         let repositioned = {};
         for(const win0 of Window.windows.values()) {
@@ -1687,6 +1693,7 @@ window.addEventListener("resize", () => {
                 el.style.left = Rem.toString(l);
             }
         }
+        */
 
         Window.storeSerialization();
         [ww0, wh0] = [ww1, wh1];
@@ -2079,6 +2086,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
             channel,
             parent: [window.location.hostname]
         });
+        win.contentElement.querySelector("iframe").setAttribute("allowfullscreen", false);
         player.setOptions = () => {
             player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
             player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);

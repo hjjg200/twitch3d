@@ -37,6 +37,7 @@ https://hjjg200.github.io/twitch3d
 - [ ] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
 - [ ] Prevent dropdown menu from getting out of boundary
+- [ ] Must consider actual position when using boundingclientrect because of css transition
 - [ ] Player specific context menu
     - Play/Stop
     - Volume range
