@@ -1388,7 +1388,7 @@ class Window {
     }
     rect() {
         const [ww, wh] = windowDimensions();
-        const actual = this.isMaximized(true);
+        const fully = this.isMaximized(true);
         const sty_actual = this.element.style;
         let [top, left, width, height] = [
             Rem.fromString(sty_actual.top),
@@ -1396,11 +1396,11 @@ class Window {
             Rem.fromString(sty_actual.width),
             Rem.fromString(sty_actual.height)
         ];
-        if(this.element.matches(".maximized-xAxis")) {
+        if(!fully && this.element.matches(".maximized-xAxis")) {
             left = 0;
             width = ww;
         }
-        if(this.element.matches(".maximized-yAxis")) {
+        if(!fully && this.element.matches(".maximized-yAxis")) {
             top = 0;
             height = wh;
         }
