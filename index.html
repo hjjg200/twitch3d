@@ -1826,6 +1826,9 @@ window.addEventListener("resize", () => {
         for(const win0 of Window.windows.values()) {
             if(win0.id in repositioned) continue;
 
+            // TODO fix bug where windows get wrongly respositioned
+            //      when opening page from a differently sized tab
+
             const connections = win0.connections();
             repositioned = {...repositioned, ...connections};
             const anchor = win0.connectionsAnchor;
