@@ -39,9 +39,9 @@ https://hjjg200.github.io/twitch3d
 - [x] Chat dark mode
 - [x] Better handling of auto-mute policy for better UX
 - [x] Open chat menu for players
+- [x] Make measure for: streams don't support Source quality when it just got online
 - [ ] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
-- [ ] Make measure for: streams don't support Source quality when it just got online
 - [ ] Add opacity to window options
 - [ ] Discord for communication
 - [ ] Firefox, Edge, and Safari support

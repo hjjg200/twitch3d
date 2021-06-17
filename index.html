@@ -1312,8 +1312,8 @@ class Window {
         };
     }
     distanceTo(win1) {
-        const rect0 = this.rect(this.isMaximized(true));
-        const rect1 = win1.rect(win1.isMaximized(true));
+        const rect0 = this.rect();
+        const rect1 = win1.rect();
         // tb distance
         let tb = -1;
         if(rect1.bottom <= rect0.top)      tb = rect0.top - rect1.bottom;
@@ -1459,11 +1459,10 @@ class Window {
         };
         const tbDests = [];
         const lrDests = [];
-        const ww = Rem.fromPixel(window.innerWidth);
-        const wh = Rem.fromPixel(window.innerHeight);
+        const [ww, wh] = windowDimensions();
         for(const win1 of this.windows.values()) {
             if(win1 === win) continue;
-            const rect1 = win1.rect(false);
+            const rect1 = win1.rect();
             const top1 = rect1.top;
             const left1 = rect1.left;
             tbDests.push({value: top1, owner: win1}, {value: top1 + rect1.height, owner: win1});
@@ -1907,7 +1906,7 @@ btnWinOpenChat.addEventListener("mouseup", (ev) => {
 btnWinSendToBack.addEventListener("mouseup", (ev) => {
     ctxMenuTarget.sendToBack();
 });
-btnWinClose.addEventListener("mouseup", (ev) => {
+btnWinClose.addEventListener("click", (ev) => { // click for close button
     ctxMenuTarget.close();
 });
 btnAddStream.addEventListener("mouseup", (ev) => {
@@ -2172,6 +2171,20 @@ const defaultTwitchOptions = {
 };
 const twitchComponents = {};
 const twitchPlayers = {};
+const twitchQualityValueFromString = (quality) => {
+    quality = quality.trim();
+    if(quality === "auto") return 0;
+    else if(quality === "chunked") return 60 * 1080 * 100;
+    
+    const [h, fps] = quality.split("p").map(v => parseInt(v));
+    return h*(fps || 30);
+};
+const twtichValueOfQuality = (quality) => {
+    return quality.framerate*quality.height;
+};
+const twitchQualityComparator = (lhs, rhs) => {
+    return lhs.framerate*lhs.height - rhs.framerate*rhs.height;
+};
 const storeTwitchSerialization = () => {
     localStorage.setItem("t3d-twitch", JSON.stringify(twitchComponents));
 };
@@ -2195,7 +2208,6 @@ const addTwitchComponent = (win, channel, chat, options) => {
             channel,
             parent: [window.location.hostname]
         });
-        win.contentElement.querySelector("iframe").setAttribute("allowfullscreen", false);
         player.setOptions = () => {
             player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
             player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
@@ -2230,6 +2242,14 @@ const addTwitchComponent = (win, channel, chat, options) => {
         };
         player.setQuality = (quality) => {
             if(player.online === false) return;
+            // Check if available
+            const qualities = [...player.getQualities()];
+            const qval = twitchQualityValueFromString(quality);
+            qualities.sort(twitchQualityComparator).reverse();
+            for(const each of qualities) {
+                if(twtichValueOfQuality(each) <= qval) // find the first quality that is lte to input quality
+                    quality = each.group;
+            }
             originalSetQuality(quality);
         };
         win.addEventListener("maximize", (ev) => {
