@@ -36,16 +36,12 @@ https://hjjg200.github.io/twitch3d
 - [x] Refine anchor feature
 - [x] Fix group handlers for fully maximized windows
 - [x] Must consider actual position when using boundingclientrect because of css transition
-- [ ] Better handling of auto-mute policy for better UX
+- [x] Chat dark mode
+- [x] Better handling of auto-mute policy for better UX
+- [x] Open chat menu for players
 - [ ] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
-- [ ] Prevent dropdown menu from getting out of boundary
-- [ ] Chat dark mode
 - [ ] Make measure for: streams don't support Source quality when it just got online
-- [ ] Player specific context menu
-    - Play/Stop
-    - Volume range
-    - Quality
 - [ ] Add opacity to window options
 - [ ] Discord for communication
 - [ ] Firefox, Edge, and Safari support
