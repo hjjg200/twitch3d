@@ -38,6 +38,7 @@ https://hjjg200.github.io/twitch3d
 - [ ] Layout put as query string (compressed json)
 - [ ] Prevent dropdown menu from getting out of boundary
 - [ ] Must consider actual position when using boundingclientrect because of css transition
+- [ ] Chat dark mode
 - [ ] Player specific context menu
     - Play/Stop
     - Volume range
