@@ -1434,12 +1434,13 @@ class Window {
         // lrWise: 1=left, 0=none, -1=right
         // tbWise 0, lrWise 0 = moving window
         const el = win.element;
-        const rect0 = win.rect(false);
+        const rect0 = win.rect();
         const [mouseX0, mouseY0] = [mouseX, mouseY];
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
-        const top0 = rect0.y; // Get the shown position
-        let left0 = rect0.x;
+        const cpstyle = getComputedStyle(el);
+        const top0 = Rem.fromString(cpstyle.top); // Get the shown position
+        let left0 = Rem.fromString(cpstyle.left);
         const left0_alt = mouseX0 - width0/2;
         const connectedTo0 = {...win.connectedTo};
         const snapDist = Rem.fromPixel(10);
