@@ -898,9 +898,17 @@ document.addEventListener("mousemove", mouseHandler);
 
 // Class Rem
 class Rem {
+    static get epsilon() {
+        return this.fromPixel(0.5); // fixed margin for pixel comparison
+    }
     static get fontSize() {
         return parseFloat(getComputedStyle(document.documentElement).fontSize);
     }
+    static eq(lhs, rhs) {return Math.abs(lhs-rhs) < this.epsilon;}
+    static lt(lhs, rhs) {return lhs < rhs + this.epsilon;}
+    static lte(lhs, rhs) {return this.lt(lhs, rhs) || this.eq(lhs, rhs);}
+    static gt(lhs, rhs) {return lhs > rhs - this.epsilon;}
+    static gte(lhs, rhs) {return this.gt(lhs, rhs) || this.eq(lhs, rhs);}
     static toPixel(rem) {
         return rem * Rem.fontSize;
     }
@@ -1270,8 +1278,6 @@ class Window {
             if(lr === -1) lr = 0;
         }
         let dist = Math.pow(tb*tb + lr*lr, 0.5);
-        const epsilon = Rem.fromPixel(0.5);
-        if(dist < epsilon) dist = 0;
         return dist;
     }
     connections() {
@@ -1297,14 +1303,14 @@ class Window {
     static anchorOf(rect) {
         const [ww, wh] = windowDimensions();
         let tb, lr, tbv, lrv;
-        if(rect.x <= 0 && rect.right >= ww) {lr = this.AnchorTypes.BOTH_END;  lrv = (rect.x + rect.width/2) / ww;}
-        else if(rect.x <= 0)                {lr = this.AnchorTypes.LEFT_END;  lrv = rect.x;}
-        else if(rect.right >= ww)           {lr = this.AnchorTypes.RIGHT_END; lrv = ww - rect.right;}
-        else                                {lr = this.AnchorTypes.MIDDLE;    lrv = (rect.x + rect.width/2) / ww;}
-        if(rect.y <= 0 && rect.bottom >= wh) {tb = this.AnchorTypes.BOTH_END;  tbv = (rect.y + rect.height/2) / wh;}
-        else if(rect.y <= 0)                 {tb = this.AnchorTypes.LEFT_END;  tbv = rect.y;}
-        else if(rect.bottom >= wh)           {tb = this.AnchorTypes.RIGHT_END; tbv = wh - rect.bottom;}
-        else                                 {tb = this.AnchorTypes.MIDDLE;    tbv = (rect.y + rect.height/2) / wh;}
+        if(Rem.lte(rect.x, 0) && Rem.gte(rect.right, ww)) {lr = this.AnchorTypes.BOTH_END;  lrv = (rect.x + rect.width/2) / ww;}
+        else if(Rem.lte(rect.x, 0))                       {lr = this.AnchorTypes.LEFT_END;  lrv = rect.x;}
+        else if(Rem.gte(rect.right, ww))                  {lr = this.AnchorTypes.RIGHT_END; lrv = ww - rect.right;}
+        else                                              {lr = this.AnchorTypes.MIDDLE;    lrv = (rect.x + rect.width/2) / ww;}
+        if(Rem.lte(rect.y, 0) && Rem.gte(rect.bottom, wh)) {tb = this.AnchorTypes.BOTH_END;  tbv = (rect.y + rect.height/2) / wh;}
+        else if(Rem.lte(rect.y, 0))                        {tb = this.AnchorTypes.LEFT_END;  tbv = rect.y;}
+        else if(Rem.gte(rect.bottom, wh))                  {tb = this.AnchorTypes.RIGHT_END; tbv = wh - rect.bottom;}
+        else                                               {tb = this.AnchorTypes.MIDDLE;    tbv = (rect.y + rect.height/2) / wh;}
         return {
             TopBottom: {
                 Type: tb, Value: tbv
@@ -1576,7 +1582,7 @@ class Window {
             // Connections
             for(const id1 of Object.keys({...connectedTo0, ...win.connectedTo})) {
                 const win1 = Window.windows.get(id1);
-                if(win.distanceTo(win1) === 0) {
+                if(Rem.eq(win.distanceTo(win1), 0)) {
                     win.connectedTo[win1.id] = null;
                     win1.connectedTo[win.id] = null;
                 } else {
@@ -1584,7 +1590,7 @@ class Window {
                     delete win1.connectedTo[win.id];
                 }
             }
-            if(connectCandidate !== null && connectCandidate.distanceTo(win) === 0) {
+            if(connectCandidate !== null && Rem.eq(connectCandidate.distanceTo(win), 0)) {
                 win.connectedTo[connectCandidate.id] = null;
             }
             if(Object.keys(win.connectedTo).length > 0) {
