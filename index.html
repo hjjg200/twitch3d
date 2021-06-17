@@ -529,6 +529,16 @@ body:not(.still-cursor) .window.focused {
     pointer-events: none;
 }
 
+#window-fully-maximized-representation {
+    background: #ff993a79;
+    display: none;
+    position: absolute;
+}
+#window-fully-maximized-representation .window-title-bar {
+    background: #ff993a31;
+    opacity: 1 !important;
+}
+
 /* Dropdown */
 .dropdown {
     position: relative;
@@ -603,6 +613,17 @@ body:not(.still-cursor) .window.focused {
 
             </div>
             <div id="window-connections-indicator"></div>
+            <div id="window-fully-maximized-representation" class="window">
+                <div class="window-relative">
+                    <div class="window-title-bar">
+                        <div class="window-title-bar-relative">
+                            <div class="window-title">
+                                <div class="window-title-text"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
         <div id="context-menu">
             <div id="context-menu-content">
@@ -1231,12 +1252,14 @@ class Window {
         Window._resetZIndexes();
     }
     static _resetZIndexes() {
+        let gap = 10;
         let node = this.windows.head;
-        let headIndex = this.windows.length + this.baseZIndex - 1;
+        let headIndex = (this.windows.length - 1) * gap + this.baseZIndex;
         while(node !== null) {
-            node.value.element.style.zIndex = `${headIndex--}`;
+            node.value.element.style.zIndex = `${headIndex}`;
             node.value.blur();
             node = node.prev;
+            headIndex -= gap;
         }
     }
     rect() {
@@ -1433,6 +1456,9 @@ class Window {
         // class
         el.classList.add(move ? "in-move" : "in-resize");
 
+        // Show maximized window
+        if(win !== this.fullyMaximizedWindow) this.showMaximizedRepresentation();
+
         // Show current connections
         Window.showConnectionsIndicator(win.connections());
 
@@ -1464,6 +1490,7 @@ class Window {
                 }
             }
             //
+            Window.hideMaximizedRepresentation();
             Window.hideConnectionsIndicator();
             win.dispatchEvent(new Event("change"));
         }).bind(this);
@@ -1613,6 +1640,26 @@ class Window {
     static hideConnectionsIndicator() {
         const gi = document.getElementById("window-connections-indicator");
         gi.style.display = "";
+    }
+    static showMaximizedRepresentation() {
+        const mr = document.getElementById("window-fully-maximized-representation");
+        const mw = this.fullyMaximizedWindow;
+        if(mw !== null) {
+            const s0 = mr.style;
+            const s1 = mw.element.style;
+            s0.top = s1.top;
+            s0.left = s1.left;
+            s0.width = s1.width;
+            s0.height = s1.height;
+            s0.zIndex = s1.zIndex;
+            s0.display = "block";
+
+            mr.querySelector(".window-title-text").textContent = mw.element.querySelector(".window-title-text").textContent;
+        }
+    }
+    static hideMaximizedRepresentation() {
+        const mr = document.getElementById("window-fully-maximized-representation");
+        mr.style.display = "";
     }
     static connectionsRect(connections) {
         const values = Object.values(connections);
