@@ -357,6 +357,9 @@ input[type='range']::-webkit-slider-thumb {
 body:not(.still-cursor) .window.focused {
     box-shadow: 0 .2rem 1rem var(--color-shadow);
 }
+.window.twitch-offline:not(:hover) {
+    opacity: 0.3;
+}
 .window.maximized {
     transform: none !important;
     transition-property: box-shadow, opacity;
