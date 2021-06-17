@@ -1855,17 +1855,15 @@ window.addEventListener("resize", () => {
             const anchor = win0.connectionsAnchor;
             const c_rect = Window.connectionsRect(connections);
             const values = Object.values(connections);
-            const [tbt, lrt] = [anchor.TopBottom.Type, anchor.LeftRight.Type];
-            const [tbv, lrv] = [anchor.TopBottom.Value, anchor.LeftRight.Value];
-            const [tbl, lrl] = [anchor.TopBottom.Length, anchor.LeftRight.Length];
-            const [tbr, lrr] = [anchor.TopBottom.Ratio, anchor.LeftRight.Ratio];
+            const [c_tbt, c_lrt] = [anchor.TopBottom.Type, anchor.LeftRight.Type];
+            const [c_tbv, c_lrv] = [anchor.TopBottom.Value, anchor.LeftRight.Value];
 
-            const BOTH_BOTH = tbt === 0 && lrt === 0;
-            const BOTH_EITHER = tbt+lrt >= 1 && tbt+lrt <= 2 && tbt*lrt === 0;
-            const BOTH_MIDDLE = tbt+lrt === 3 && tbt*lrt === 0;
-            const EITHER_EITHER = tbt < 3 && lrt < 3 && tbt*lrt > 0;
-            const EITHER_MIDDLE = (tbt === 3 || lrt === 3) && tbt*lrt > 0 && tbt*lrt < 9;
-            const MIDDLE_MIDDLE = tbt*lrt === 9;
+            const BOTH_BOTH = c_tbt === 0 && c_lrt === 0;
+            const BOTH_EITHER = c_tbt+c_lrt >= 1 && c_tbt+c_lrt <= 2 && c_tbt*c_lrt === 0;
+            const BOTH_MIDDLE = c_tbt+c_lrt === 3 && c_tbt*c_lrt === 0;
+            const EITHER_EITHER = c_tbt < 3 && c_lrt < 3 && c_tbt*c_lrt > 0;
+            const EITHER_MIDDLE = (c_tbt === 3 || c_lrt === 3) && c_tbt*c_lrt > 0 && c_tbt*c_lrt < 9;
+            const MIDDLE_MIDDLE = c_tbt*c_lrt === 9;
 
             // BOTH-BOTH = scale up/down
             // BOTH-EITHER = push all to either end + align except for BOTH ones
@@ -1877,12 +1875,12 @@ window.addEventListener("resize", () => {
             const [c_top, c_left, c_width, c_height] = [
                 c_rect.top, c_rect.left, c_rect.width, c_rect.height 
             ];
-            const [c_mtr0, c_mlr0] = [tbv, lrv];
+            const [c_mtr0, c_mlr0] = [c_tbv, c_lrv];
             const [c_mtr1, c_mlr1] = [(c_top+c_height/2)/wh1, (c_left+c_width/2)/ww1]; // top from middle, left from middle *ratio*
             let [c_dmt, c_dml] = [(c_mtr0-c_mtr1)*wh1, (c_mlr0-c_mlr1)*ww1]; // connections delta middle top, middle left
             if(c_dmt + c_top < 0) c_dmt = -c_top;
             if(c_dml + c_left < 0) c_dml = -c_left;
-            const [c_db, c_dr] = [(wh1-c_rect.bottom)-tbv, (ww1-c_rect.right)-lrv]; // bottom, right diff
+            const [c_db, c_dr] = [(wh1-c_rect.bottom)-c_tbv, (ww1-c_rect.right)-c_lrv]; // bottom, right diff
             
             for(const win1 of values) {
                 const style = win1.element.style;
@@ -1890,6 +1888,8 @@ window.addEventListener("resize", () => {
                 const left = Rem.fromString(style.left);
                 const width = Rem.fromString(style.width);
                 const height = Rem.fromString(style.height);
+                const [tbl, lrl] = [win1.anchor.TopBottom.Length, win1.anchor.LeftRight.Length];
+                const [tbr, lrr] = [win1.anchor.TopBottom.Ratio, win1.anchor.LeftRight.Ratio];
 
                 // TODO simplify later
                 if(BOTH_BOTH || BOTH_EITHER || BOTH_MIDDLE) {
@@ -1898,23 +1898,23 @@ window.addEventListener("resize", () => {
                     style.width = Rem.toString(lrl * ww1);
                     style.height = Rem.toString(tbl * wh1);
                 } else if(false/*BOTH_EITHER || BOTH_MIDDLE*/) {
-                    if(tbt === 2) style.top = Rem.toString(top - c_db);
-                    else if(tbt === 3) style.top = Rem.toString(top + c_dmt);
-                    else if(tbt === 0) {
+                    if(c_tbt === 2) style.top = Rem.toString(top - c_db);
+                    else if(c_tbt === 3) style.top = Rem.toString(top + c_dmt);
+                    else if(c_tbt === 0) {
                         style.top = Rem.toString(tbr * wh1);
                         style.height = Rem.toString(tbl * wh1);
                     }
-                    if(lrt === 2) style.left = Rem.toString(left - c_dr);
-                    else if(lrt === 3) style.left = Rem.toString(left + c_dml);
-                    else if(lrt === 0) {
+                    if(c_lrt === 2) style.left = Rem.toString(left - c_dr);
+                    else if(c_lrt === 3) style.left = Rem.toString(left + c_dml);
+                    else if(c_lrt === 0) {
                         style.left = Rem.toString(lrr * ww1);
                         style.width = Rem.toString(lrl * ww1);
                     }
                 } else if(EITHER_EITHER || EITHER_MIDDLE || MIDDLE_MIDDLE) {
-                    if(tbt === 2) style.top = Rem.toString(top + c_db);
-                    else if(tbt === 3) style.top = Rem.toString(top + c_dmt);
-                    if(lrt === 2) style.left = Rem.toString(left + c_dr);
-                    else if(lrt === 3) style.left = Rem.toString(left + c_dml);
+                    if(c_tbt === 2) style.top = Rem.toString(top + c_db);
+                    else if(c_tbt === 3) style.top = Rem.toString(top + c_dmt);
+                    if(c_lrt === 2) style.left = Rem.toString(left + c_dr);
+                    else if(c_lrt === 3) style.left = Rem.toString(left + c_dml);
                 }
             }
         }
