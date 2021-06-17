@@ -1228,6 +1228,7 @@ class Window {
     unmaximize() {
         const prevXAxis = this.element.matches(".maximized-xAxis");
         const prevYAxis = this.element.matches(".maximized-yAxis");
+        if(prevXAxis && prevYAxis) Window.fullyMaximizedWindow = null;
         this.element.classList.remove("maximized", "maximized-xAxis", "maximized-yAxis");
         this.dispatchEvent(new Event("change"));
         this.dispatchEvent(new CustomEvent("unmaximize", {
@@ -1629,7 +1630,7 @@ class Window {
     }
     static showConnectionsIndicator(connections) {
         if(Object.keys(connections).length === 1) return;
-        const rect = this.connectionsRect(connections, false);
+        const rect = this.connectionsRect(connections);
         const gi = document.getElementById("window-connections-indicator");
         gi.style.top = Rem.toString(rect.top);
         gi.style.left = Rem.toString(rect.left);
