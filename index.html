@@ -50,7 +50,7 @@
 }
 
 html, body {
-    background: black;
+    background-color: black;
     color: var(--color-gray-0);
     font-size: 16px;
     font-family: Roboto, Helvetica, Arial, 'Noto Sans KR', sans-serif;
@@ -58,6 +58,11 @@ html, body {
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    transition: background-color cubic-bezier(0.61, 1, 0.88, 1) .6s;
+}
+body:not(.still-cursor) {
+    background-color: rgb(5, 5, 5);
+    transition: background-color cubic-bezier(0.11, 0, 0.5, 0) .6s;
 }
 body.lang-ko {
 }
