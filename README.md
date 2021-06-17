@@ -39,6 +39,7 @@ https://hjjg200.github.io/twitch3d
 - [ ] Prevent dropdown menu from getting out of boundary
 - [ ] Must consider actual position when using boundingclientrect because of css transition
 - [ ] Chat dark mode
+- [ ] Make measure for: streams don't support Source quality when it just got online
 - [ ] Player specific context menu
     - Play/Stop
     - Volume range

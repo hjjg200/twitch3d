@@ -1287,15 +1287,6 @@ class Window {
         return visited;
     }
 
-    // TODO: window groups
-    //          - delete group when there is no 0-distanced windows
-    //              - consider actual coords
-    //          - form group when snapping, exclude fully maximized window
-    //              - snapping is done on actual coords
-    //          - group indicator is visible when cursor is hovering on any of the group's window
-    // TODO: repositioning windows when window resized is done in this order
-    //          - each group as a whole
-    //          - windows that don't belong to any group
     static AnchorTypes = Object.freeze({
         // Order of preference
         BOTH_END: 0,
@@ -1561,7 +1552,7 @@ class Window {
                     let d = 0;
                     // Top takes priority
                     if(bs) {d = bd; connectCandidate = bown;}
-                    if(ts) {d = td; connectCandidate = town;}
+                    if(ts && !(!move && tbWise === -1)) {d = td; connectCandidate = town;}
                     if(tok) top1 += d;
                     if(hok) height1 += tok ? -d : d;
                 }
@@ -1571,7 +1562,7 @@ class Window {
                     let d = 0;
                     // Left takes priority
                     if(rs) {d = rd; connectCandidate = rown;}
-                    if(ls) {d = ld; connectCandidate = lown;}
+                    if(ls && !(!move && lrWise === -1)) {d = ld; connectCandidate = lown;}
                     if(lok) left1 += d;
                     if(wok) width1 += lok ? -d : d;
                 }
@@ -1654,27 +1645,45 @@ window.addEventListener("resize", () => {
             repositioned = {...repositioned, ...connections};
             const anchor = win0.connectionsAnchor;
             const values = Object.values(connections);
+            const [tbt, lrt] = [anchor.TopBottom.Type, anchor.LeftRight.Type];
+
+            const BOTH_BOTH = tbt === 0 && lrt === 0;
+            const BOTH_EITHER = tbt+lrt >= 1 && tbt+lrt <= 2 && tbt*lrt === 0;
+            const BOTH_MIDDLE = tbt+lrt === 3 && tbt*lrt === 0;
+            const EITHER_EITHER = tbt < 3 && lrt < 3 && tbt*lrt > 0;
+            const EITHER_MIDDLE = (tbt === 3 || lrt === 3) && tbt*lrt > 0 && tbt*lrt < 9;
+            const MIDDLE_MIDDLE = tbt*lrt === 9;
+
+            // BOTH-BOTH = scale up/down
+            // BOTH-EITHER = push all to either end + align except for BOTH ones
+            // BOTH-MIDDLE = put them in the middle + align except for BOTH ones
+            // EITHER-EITHER = stick it to that end
+            // EITHER-MIDDLE = stick to end and put middle
+            // MIDDLE-MIDDLE = middle
+
+            const [qw, qh] = [ww1/ww0, wh1/wh0];
             
             for(const win1 of values) {
+                const style = win1.element.style;
+                const top = Rem.fromString(style.top);
+                const left = Rem.fromString(style.left);
+                const width = Rem.fromString(style.width);
+                const height = Rem.fromString(style.height);
 
-                const [tbt, lrt] = [anchor.TopBottom.Type, anchor.LeftRight.Type];
-                if(tbt === 0 && lrt === 0) {
-                // BOTH-BOTH = scale up/down
+                if(BOTH_BOTH) {
+                    style.top = Rem.toString(qh * top);
+                    style.left = Rem.toString(qw * left);
+                    style.width = Rem.toString(qw * width);
+                    style.height = Rem.toString(qh * height);
+                } else if(BOTH_EITHER) {
 
-                } else if(tbt+lrt >= 1 && tbt+lrt <= 2 && tbt*lrt === 0) {
-                // BOTH-EITHER = push all to either end + align except for BOTH ones
+                } else if(BOTH_MIDDLE) {
 
-                } else if(tbt+lrt === 3 && tbt*lrt === 0) {
-                // BOTH-MIDDLE = put them in the middle + align except for BOTH ones
+                } else if(EITHER_EITHER) {
 
-                } else if(tbt < 3 && lrt < 3 && tbt*lrt > 0) {
-                // EITHER-EITHER = stick it to that end
+                } else if(EITHER_MIDDLE) {
 
-                } else if((tbt === 3 || lrt === 3) && tbt*lrt > 0 && tbt*lrt < 9) {
-                // EITHER-MIDDLE = stick to end and put middle
-
-                } else if(tbt*lrt === 9) {
-                // MIDDLE-MIDDLE = middle
+                } else if(MIDDLE_MIDDLE) {
 
                 }
             }
