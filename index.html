@@ -150,7 +150,7 @@ button.button-cancel:hover {
 
 #introduction {
     font-size: 1rem;
-    line-height: 1.35;
+    line-height: 1.25;
     top: 50%;
     left: 50%;
     position: absolute;
@@ -1387,15 +1387,23 @@ class Window {
         }
     }
     rect() {
+        const [ww, wh] = windowDimensions();
         const actual = this.isMaximized(true);
         const sty_actual = this.element.style;
-        const sty_visible = getComputedStyle(this.element);
-        const [top, left, width, height] = [
-            actual ? Rem.fromString(sty_actual.top) : Rem.fromString(sty_visible.top),
-            actual ? Rem.fromString(sty_actual.left) : Rem.fromString(sty_visible.left),
-            actual ? Rem.fromString(sty_actual.width) : Rem.fromString(sty_visible.width),
-            actual ? Rem.fromString(sty_actual.height) : Rem.fromString(sty_visible.height)
+        let [top, left, width, height] = [
+            Rem.fromString(sty_actual.top),
+            Rem.fromString(sty_actual.left),
+            Rem.fromString(sty_actual.width),
+            Rem.fromString(sty_actual.height)
         ];
+        if(this.element.matches(".maximized-xAxis")) {
+            left = 0;
+            width = ww;
+        }
+        if(this.element.matches(".maximized-yAxis")) {
+            top = 0;
+            height = wh;
+        }
         return {
             top,
             left,
@@ -1458,20 +1466,33 @@ class Window {
     static anchorOf(rect) {
         const [ww, wh] = windowDimensions();
         let tb, lr, tbv, lrv;
-        if(Rem.lte(rect.x, 0) && Rem.gte(rect.right, ww)) {lr = this.AnchorTypes.BOTH_END;  lrv = (rect.x + rect.width/2) / ww;}
-        else if(Rem.lte(rect.x, 0))                       {lr = this.AnchorTypes.LEFT_END;  lrv = rect.x;}
-        else if(Rem.gte(rect.right, ww))                  {lr = this.AnchorTypes.RIGHT_END; lrv = ww - rect.right;}
-        else                                              {lr = this.AnchorTypes.MIDDLE;    lrv = (rect.x + rect.width/2) / ww;}
-        if(Rem.lte(rect.y, 0) && Rem.gte(rect.bottom, wh)) {tb = this.AnchorTypes.BOTH_END;  tbv = (rect.y + rect.height/2) / wh;}
-        else if(Rem.lte(rect.y, 0))                        {tb = this.AnchorTypes.LEFT_END;  tbv = rect.y;}
-        else if(Rem.gte(rect.bottom, wh))                  {tb = this.AnchorTypes.RIGHT_END; tbv = wh - rect.bottom;}
-        else                                               {tb = this.AnchorTypes.MIDDLE;    tbv = (rect.y + rect.height/2) / wh;}
+        const [tbr, lrr] = [rect.top/wh, rect.left/ww];
+        const [tbl, lrl] = [rect.height/wh, rect.width/ww];
+
+        if(Rem.lte(rect.x, 0) && Rem.gte(rect.right, ww))
+            {lr = this.AnchorTypes.BOTH_END;  lrv = (rect.x + rect.width/2) / ww;}
+        else if(Rem.lte(rect.x, 0))
+            {lr = this.AnchorTypes.LEFT_END;  lrv = rect.x;}
+        else if(Rem.gte(rect.right, ww))
+            {lr = this.AnchorTypes.RIGHT_END; lrv = ww - rect.right;}
+        else
+            {lr = this.AnchorTypes.MIDDLE;    lrv = (rect.x + rect.width/2) / ww;}
+
+        if(Rem.lte(rect.y, 0) && Rem.gte(rect.bottom, wh))
+            {tb = this.AnchorTypes.BOTH_END;  tbv = (rect.y + rect.height/2) / wh;}
+        else if(Rem.lte(rect.y, 0))
+            {tb = this.AnchorTypes.LEFT_END;  tbv = rect.y;}
+        else if(Rem.gte(rect.bottom, wh))
+            {tb = this.AnchorTypes.RIGHT_END; tbv = wh - rect.bottom;}
+        else
+            {tb = this.AnchorTypes.MIDDLE;    tbv = (rect.y + rect.height/2) / wh;}
+        
         return {
             TopBottom: {
-                Type: tb, Value: tbv
+                Type: tb, Value: tbv, Ratio: tbr, Length: tbl
             },
             LeftRight: {
-                Type: lr, Value: lrv
+                Type: lr, Value: lrv, Ratio: lrr, Length: lrl
             }
         };
     }
@@ -1542,9 +1563,9 @@ class Window {
         const [mouseX0, mouseY0] = [mouseX, mouseY];
         const width0 = Rem.fromString(el.style.width);
         const height0 = Rem.fromString(el.style.height);
-        const cpstyle = getComputedStyle(el);
-        const top0 = Rem.fromString(cpstyle.top); // Get the shown position
-        let left0 = Rem.fromString(cpstyle.left);
+        let top0 = rect0.top; // Get the shown position
+        if(win.isMaximized(true)) top0 = 0;
+        let left0 = rect0.left;
         const left0_alt = mouseX0 - width0/2;
         const connectedTo0 = {...win.connectedTo};
         const snapDist = Rem.fromPixel(10);
@@ -1816,10 +1837,10 @@ let windowResizeTimeout = null;
 const windowDimensions = () => {
     return [Rem.fromPixel(window.innerWidth), Rem.fromPixel(window.innerHeight)];
 };
-let [ww0, wh0] = windowDimensions();
 window.addEventListener("resize", () => {
-    if(windowResizeTimeout !== null) clearTimeout(windowResizeTimeout);
+    clearTimeout(windowResizeTimeout);
     windowResizeTimeout = setTimeout(() => {
+        clearTimeout(windowResizeTimeout);
 
         const [ww1, wh1] = windowDimensions();
         let repositioned = {};
@@ -1836,6 +1857,8 @@ window.addEventListener("resize", () => {
             const values = Object.values(connections);
             const [tbt, lrt] = [anchor.TopBottom.Type, anchor.LeftRight.Type];
             const [tbv, lrv] = [anchor.TopBottom.Value, anchor.LeftRight.Value];
+            const [tbl, lrl] = [anchor.TopBottom.Length, anchor.LeftRight.Length];
+            const [tbr, lrr] = [anchor.TopBottom.Ratio, anchor.LeftRight.Ratio];
 
             const BOTH_BOTH = tbt === 0 && lrt === 0;
             const BOTH_EITHER = tbt+lrt >= 1 && tbt+lrt <= 2 && tbt*lrt === 0;
@@ -1857,10 +1880,9 @@ window.addEventListener("resize", () => {
             const [c_mtr0, c_mlr0] = [tbv, lrv];
             const [c_mtr1, c_mlr1] = [(c_top+c_height/2)/wh1, (c_left+c_width/2)/ww1]; // top from middle, left from middle *ratio*
             let [c_dmt, c_dml] = [(c_mtr0-c_mtr1)*wh1, (c_mlr0-c_mlr1)*ww1]; // connections delta middle top, middle left
-            if(c_dmt + c_rect.top < 0) c_dmt = -c_rect.top;
-            if(c_dml + c_rect.left < 0) c_dml = -c_rect.left;
-            const [c_db, c_dr] = [wh0-wh1, ww0-ww1]; // bottom, right diff
-            const [qw, qh] = [ww1/ww0, wh1/wh0];
+            if(c_dmt + c_top < 0) c_dmt = -c_top;
+            if(c_dml + c_left < 0) c_dml = -c_left;
+            const [c_db, c_dr] = [(wh1-c_rect.bottom)-tbv, (ww1-c_rect.right)-lrv]; // bottom, right diff
             
             for(const win1 of values) {
                 const style = win1.element.style;
@@ -1870,36 +1892,35 @@ window.addEventListener("resize", () => {
                 const height = Rem.fromString(style.height);
 
                 // TODO simplify later
-                if(BOTH_BOTH) {
-                    style.top = Rem.toString(qh * top);
-                    style.left = Rem.toString(qw * left);
-                    style.width = Rem.toString(qw * width);
-                    style.height = Rem.toString(qh * height);
-                } else if(BOTH_EITHER || BOTH_MIDDLE) {
+                if(BOTH_BOTH || BOTH_EITHER || BOTH_MIDDLE) {
+                    style.top = Rem.toString(tbr * wh1);
+                    style.left = Rem.toString(lrr * ww1);
+                    style.width = Rem.toString(lrl * ww1);
+                    style.height = Rem.toString(tbl * wh1);
+                } else if(false/*BOTH_EITHER || BOTH_MIDDLE*/) {
                     if(tbt === 2) style.top = Rem.toString(top - c_db);
                     else if(tbt === 3) style.top = Rem.toString(top + c_dmt);
                     else if(tbt === 0) {
-                        style.top = Rem.toString(qh * top);
-                        style.height = Rem.toString(qh * height);
+                        style.top = Rem.toString(tbr * wh1);
+                        style.height = Rem.toString(tbl * wh1);
                     }
                     if(lrt === 2) style.left = Rem.toString(left - c_dr);
                     else if(lrt === 3) style.left = Rem.toString(left + c_dml);
                     else if(lrt === 0) {
-                        style.left = Rem.toString(qw * left);
-                        style.width = Rem.toString(qw * width);
+                        style.left = Rem.toString(lrr * ww1);
+                        style.width = Rem.toString(lrl * ww1);
                     }
                 } else if(EITHER_EITHER || EITHER_MIDDLE || MIDDLE_MIDDLE) {
-                    if(tbt === 2) style.top = Rem.toString(top - c_db);
+                    if(tbt === 2) style.top = Rem.toString(top + c_db);
                     else if(tbt === 3) style.top = Rem.toString(top + c_dmt);
-                    if(lrt === 2) style.left = Rem.toString(left - c_dr);
+                    if(lrt === 2) style.left = Rem.toString(left + c_dr);
                     else if(lrt === 3) style.left = Rem.toString(left + c_dml);
                 }
             }
         }
 
         Window.storeSerialization();
-        [ww0, wh0] = [ww1, wh1];
-    }, 16);
+    }, 50);
 });
 
 const _getMatchingParent = (element, parent, inclusive) => {
