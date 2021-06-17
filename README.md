@@ -33,28 +33,19 @@ https://hjjg200.github.io/twitch3d
 - [x] Implement `alternate when maximized`
 - [x] Store changed info after changing options
 - [x] Prevent context menu from getting out of boundary
+- [x] Refine anchor feature
+- [x] Fix group handlers for fully maximized windows
+- [x] Must consider actual position when using boundingclientrect because of css transition
 - [ ] Better handling of auto-mute policy for better UX
 - [ ] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
 - [ ] Prevent dropdown menu from getting out of boundary
-- [ ] Must consider actual position when using boundingclientrect because of css transition
 - [ ] Chat dark mode
 - [ ] Make measure for: streams don't support Source quality when it just got online
 - [ ] Player specific context menu
     - Play/Stop
     - Volume range
     - Quality
-- [ ] Refine anchor feature
-    - [ ] Use epsilon for anchor evaluation
-    - [ ] Top-bottom anchor types: top, middle, bottom, top-bottom
-    - [ ] Left-right anchor types: left, middle, right, left-right
-    - [ ] Handling when resized
-        - Top, left: maintain top, left
-        - Middle: maintain position ratio but put it inside boundary
-        - Bottom, right: maintain bottom, right
-        - Top-bottom, left-right: maintain both by resizing the window
-- [ ] Fix group handlers for fully maximized windows
-    - [ ] Make temporary rect for fully maximized windows when grouping
 - [ ] Add opacity to window options
 - [ ] Discord for communication
 - [ ] Firefox, Edge, and Safari support

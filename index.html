@@ -2195,7 +2195,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
         });
     } else {
         const iframe = createElement("iframe");
-        iframe.src = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}`;
+        iframe.src = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}&darkpopout`;
         win.contentElement.appendChild(iframe);
     }
     twitchComponents[win.id] = {
