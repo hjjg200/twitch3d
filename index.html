@@ -58,11 +58,11 @@ html, body {
     overflow: hidden;
     width: 100vw;
     height: 100vh;
-    transition: background-color cubic-bezier(0.61, 1, 0.88, 1) .6s;
+    transition: background-color cubic-bezier(0.61, 1, 0.88, 1) .2s;
 }
 body:not(.still-cursor) {
-    background-color: rgb(5, 5, 5);
-    transition: background-color cubic-bezier(0.11, 0, 0.5, 0) .6s;
+    background-color: rgb(2, 1, 2); /* it's for clear view of windows' boundary */
+    transition: background-color cubic-bezier(0.11, 0, 0.5, 0) .2s;
 }
 body.lang-ko {
 }
@@ -352,7 +352,7 @@ input[type='range']::-webkit-slider-thumb {
     top: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(55, 55, 55, 0.7);
+    background-color: rgba(55, 55, 55, 0.9);
     box-shadow: 0 .2rem .4rem rgba(0, 0, 0, 0.2);
     color: white;
     font-size: .875rem;
@@ -362,7 +362,7 @@ input[type='range']::-webkit-slider-thumb {
     z-index: 2001;
     display: flex;
     flex-wrap: nowrap;
-    gap: .75rem;
+    gap: .875rem;
     align-items: center;
 }
 body:not(.iframe-enabled) #btn-disable-iframes {
@@ -381,7 +381,7 @@ body.iframe-enabled #btn-disable-iframes {
     display: block;
 }
 #btn-disable-iframes:hover {
-    background-color: rgba(88, 88, 88, 0.7);
+    background-color: rgba(88, 88, 88, 0.95);
 }
 
 #modal-add-stream #input-streamer {
@@ -1187,7 +1187,7 @@ class Window {
         contentOverlay.addEventListener("mousedown", (ev) => {
             ctxMenuWasNotOpen = ctxMenu.style.display === "";
         });
-        contentOverlay.addEventListener("mouseup", ((ev) => {
+        contentOverlay.addEventListener("click", ((ev) => {
             this.focus();
             if(ev.button === 0 && ctxMenuWasNotOpen) {
                 enableIframe(this);
