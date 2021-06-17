@@ -1644,6 +1644,7 @@ window.addEventListener("resize", () => {
             const connections = win0.connections();
             repositioned = {...repositioned, ...connections};
             const anchor = win0.connectionsAnchor;
+            const c_rect = Window.connectionsRect(connections);
             const values = Object.values(connections);
             const [tbt, lrt] = [anchor.TopBottom.Type, anchor.LeftRight.Type];
 
@@ -1661,6 +1662,12 @@ window.addEventListener("resize", () => {
             // EITHER-MIDDLE = stick to end and put middle
             // MIDDLE-MIDDLE = middle
 
+            const [c_top, c_left, c_width, c_height] = [
+                c_rect.top, c_rect.left, c_rect.width, c_rect.height 
+            ];
+            const [c_mtr0, c_mlr0] = [(c_top+c_height/2)/wh0, (c_left+c_width/2)/ww0]; // top from middle, left from middle *ratio*
+            const [c_dmt, c_dml] = [c_mtr0*(wh1-wh0), c_mlr0*(ww1-ww0)]; // connections delta middle top, middle left
+            const [c_db, c_dr] = [wh0-wh1, ww0-ww1]; // bottom, right diff
             const [qw, qh] = [ww1/ww0, wh1/wh0];
             
             for(const win1 of values) {
@@ -1676,15 +1683,36 @@ window.addEventListener("resize", () => {
                     style.width = Rem.toString(qw * width);
                     style.height = Rem.toString(qh * height);
                 } else if(BOTH_EITHER) {
+                    // 4
 
                 } else if(BOTH_MIDDLE) {
+                    // 5
 
                 } else if(EITHER_EITHER) {
+                    // 2
+                    console.log("A");
+                    if(tbt === 1) {
+                        // top
+                        // nothing
+                    } else {
+                        // bottom
+                        style.top = Rem.toString(top - c_db);
+                    }
+                    if(lrt === 1) {
+                        // left
+                        // nothing
+                    } else {
+                        // right
+                        style.left = Rem.toString(left - c_dr);
+                    }
 
                 } else if(EITHER_MIDDLE) {
+                    // 3
 
                 } else if(MIDDLE_MIDDLE) {
-
+                    // 1
+                    style.top = Rem.toString(top + c_dmt);
+                    style.left = Rem.toString(left + c_dml);
                 }
             }
         }
