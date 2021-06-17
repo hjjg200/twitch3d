@@ -304,7 +304,8 @@ input[type='range']::-webkit-slider-thumb {
 }
 
 #modal-add-stream #input-streamer {
-    width: 15rem;
+    min-width: 15rem;
+    width: 100%;
 }
 
 #modal-add-stream .inputs {
@@ -728,27 +729,50 @@ body:not(.still-cursor) .window.focused {
         <script src= "https://player.twitch.tv/js/embed/v1.js"></script>
         <script>
 
-const lang = navigator.language.slice(0, 2);
+let lang = navigator.language.slice(0, 2);
 const locales = {
+    "en": {
+        "%alert-unmute-failure": "Failed to unmute the player! You have to unmute it yourself due to your browser's security policy.",
+        "%quality-auto": "Auto",
+        "%quality-source": "Source"
+    },
     "ko": {
         "#introduction h1": "트위치3D",
         "#introduction p": "<b>오른쪽 마우스 버튼</b>으로 메뉴를 열어서 스트리머들을 추가해보세요!",
+        "#btn-window-mute": "음소거",
+        "#btn-window-unmute": "음소거 해제",
+        "#btn-window-options": "플레이어 설정",
+        "#btn-window-open-chat": "채팅 열기",
+        "#btn-window-send-to-back": "맨 뒤로 보내기",
+        "#btn-window-close": "닫기",
         "#btn-add-stream": "채널 추가",
         "#btn-fullscreen": "전체화면",
         "#btn-exit-fullscreen": "전체화면 나가기",
         "#btn-unmute-all": "모두 뮤트 끄기",
         "#modal-add-stream h2": "채널 추가",
         "#modal-add-stream h2 + p": "추가할 스트리머의 Twitch 아이디를 입력하세요",
+        "#modal-add-stream [for='input-with-chat'] span": "채팅 포함",
+        "#modal-window-options h2": "플레이어 설정",
+        "#modal-window-options [for='range-volume'] > span": "음량",
+        "#modal-window-options [for='range-volume-maximized'] > span": "음량",
+        "#modal-window-options [for='checkbox-alternate-maximized'] > span": "창 최대화 시 변경",
+        "#modal-window-options [for='dropdown-quality-select'] > span": "화질",
+        "#modal-window-options [for='dropdown-quality-maximized-select'] > span": "화질",
         ".button-ok": "확인",
-        ".button-cancel": "취소"
+        ".button-cancel": "취소",
+
+        // NON-HTML
+        "%alert-unmute-failure": "음소거 해제에 실패했습니다. 브라우저의 보안 정책으로 인해 유저가 직접 음소거를 해제해야 합니다.",
+        "%quality-auto": "자동",
+        "%quality-source": "원본"
     }
 };
-if(locales[lang] !== undefined) {
-    document.body.classList.add(`lang-${lang}`);
-    for(const key in locales[lang]) {
-        for(const el of document.querySelectorAll(key).values()) {
-            el.innerHTML = locales[lang][key];
-        }
+if(!(lang in locales)) lang = "en";
+document.body.classList.add(`lang-${lang}`);
+for(const key in locales[lang]) {
+    if(key.indexOf("%") === 0) continue;
+    for(const el of document.querySelectorAll(key).values()) {
+        el.innerHTML = locales[lang][key];
     }
 }
 
@@ -2037,8 +2061,8 @@ const closeModal = (modal) => {
         forCancel = {quality, volume, maximizedQuality, maximizedVolume};
 
         const qitems = [
-            {name: "Auto", value: "auto"},
-            {name: "Source", value: "chunked"}
+            {name: locales[lang]["%quality-auto"], value: "auto"},
+            {name: locales[lang]["%quality-source"], value: "chunked"}
         ];
 
         for(const quality of qualities) {
@@ -2196,7 +2220,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
             if(muted0 === muted) return;
             originalSetMuted(muted);
             if(muted === false && player.getMuted() === true) {
-                alert("Failed to unmute the player! You have to unmute it yourself due to your browser's security policy.");
+                alert(locales[lang]["%alert-unmute-failure"]);
             }
         };
         player.setVolume = (volume) => {
