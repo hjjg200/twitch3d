@@ -953,9 +953,9 @@ class Rem {
         return parseFloat(getComputedStyle(document.documentElement).fontSize);
     }
     static eq(lhs, rhs) {return Math.abs(lhs-rhs) < this.epsilon;}
-    static lt(lhs, rhs) {return lhs < rhs + this.epsilon;}
+    static lt(lhs, rhs) {return lhs < rhs - this.epsilon;}
     static lte(lhs, rhs) {return this.lt(lhs, rhs) || this.eq(lhs, rhs);}
-    static gt(lhs, rhs) {return lhs > rhs - this.epsilon;}
+    static gt(lhs, rhs) {return lhs > rhs + this.epsilon;}
     static gte(lhs, rhs) {return this.gt(lhs, rhs) || this.eq(lhs, rhs);}
     static toPixel(rem) {
         return rem * Rem.fontSize;
@@ -1314,22 +1314,30 @@ class Window {
     distanceTo(win1) {
         const rect0 = this.rect();
         const rect1 = win1.rect();
+
         // tb distance
-        let tb = -1;
-        if(rect1.bottom <= rect0.top)      tb = rect0.top - rect1.bottom;
-        else if(rect1.top >= rect0.bottom) tb = rect1.top - rect0.bottom;
+        let tb = 0;
+        if(Rem.lte(rect1.bottom, rect0.top))      tb = rect0.top - rect1.bottom;
+        else if(Rem.gte(rect1.top, rect0.bottom)) tb = rect1.top - rect0.bottom;
+        else if(Rem.lt(rect1.bottom, rect0.bottom)
+            && Rem.gt(rect1.top, rect0.top))      tb = Math.max(rect0.top-rect1.top, rect1.bottom-rect0.bottom);
+        else if(Rem.gt(rect1.bottom, rect0.top))  tb = rect0.top - rect1.bottom;
+        else if(Rem.lt(rect1.top, rect0.bottom))  tb = rect1.top - rect0.bottom;
         // lr distance
-        let lr = -1;
-        if(rect1.right <= rect0.left)      lr = rect0.left - rect1.right;
-        else if(rect1.left >= rect0.right) lr = rect1.left - rect0.right;
+        let lr = 0;
+        if(Rem.lte(rect1.right, rect0.left))      lr = rect0.left - rect1.right;
+        else if(Rem.gte(rect1.left, rect0.right)) lr = rect1.left - rect0.right;
+        else if(Rem.lt(rect1.right, rect0.right)
+            && Rem.gt(rect1.left, rect0.left))    lr = Math.max(rect0.left-rect1.left, rect1.right-rect0.right);
+        else if(Rem.gt(rect1.right, rect0.left))  lr = rect0.left - rect1.right;
+        else if(Rem.lt(rect1.left, rect0.right))  lr = rect1.left - rect0.right;
+
         //
-        if(tb === -1 && lr === -1) return -1; // Overlapping
-        else {
-            if(tb === -1) tb = 0;
-            if(lr === -1) lr = 0;
-        }
-        let dist = Math.pow(tb*tb + lr*lr, 0.5);
-        return dist;
+        if(Rem.gte(tb, 0) && Rem.gte(lr, 0)) return Math.pow(tb*tb + lr*lr, 0.5);
+        else if(Rem.lte(tb, 0) && Rem.gte(lr, 0)) return lr;
+        else if(Rem.gte(tb, 0) && Rem.lte(lr, 0)) return tb;
+        
+        return Math.pow(tb*tb + lr*lr, 0.5) * -1;
     }
     connections() {
         const visited = {};
