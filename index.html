@@ -1966,6 +1966,8 @@ const closeModal = (modal) => {
         const volume = twitchComponents[win.id].options.volume;
         const maximizedVolume = twitchComponents[win.id].options.maximizedVolume;
 
+        console.log(maximizedVolume, twitchComponents[win.id].options);
+
         forCancel = {quality, volume, maximizedQuality, maximizedVolume};
 
         const qitems = [
