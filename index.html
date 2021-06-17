@@ -2247,8 +2247,10 @@ const addTwitchComponent = (win, channel, chat, options) => {
             const qval = twitchQualityValueFromString(quality);
             qualities.sort(twitchQualityComparator).reverse();
             for(const each of qualities) {
-                if(twtichValueOfQuality(each) <= qval) // find the first quality that is lte to input quality
+                if(twtichValueOfQuality(each) <= qval) {// find the first quality that is lte to input quality
                     quality = each.group;
+                    break;
+                }
             }
             originalSetQuality(quality);
         };
