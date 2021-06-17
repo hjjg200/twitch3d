@@ -11,7 +11,7 @@
         <meta property="og:image" content="https://hjjg200.github.io/twitch3d/logo.png"/>
 
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
         <link href="https://hjjg200.github.io/fonts/GmarketSans/GmarketSans.css" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;900&display=swap" rel="stylesheet">
 
@@ -51,6 +51,7 @@
 
 html, body {
     background: black;
+    color: var(--color-gray-0);
     font-size: 16px;
     font-family: Roboto, Helvetica, Arial, 'Noto Sans KR', sans-serif;
     line-height: 1.5;
@@ -63,7 +64,7 @@ body.lang-ko {
 
 h1, h2, h3, h4 {
     font-family: Poppins, sans-serif;
-    font-weight: 800;
+    font-weight: 500;
     letter-spacing: -0.025rem;
 }
 body.lang-ko h1,
@@ -71,12 +72,38 @@ body.lang-ko h2,
 body.lang-ko h3,
 body.lang-ko h4 {
     font-family: 'Gmarket Sans', sans-serif;;
-    font-weight: 600;
+    font-weight: 400;
 }
 
 main {
     width: 100%;
     height: 100%;
+}
+
+header, footer {
+    position: absolute;
+}
+header {
+    top: 2rem;
+    left: 2.5rem;
+}
+footer {
+    bottom: 1.75rem;
+    right: 2.5rem;
+    display: flex;
+    align-items: flex-end;
+    font-size: .8125rem;
+    opacity: 0.8;
+}
+footer .frame {
+    gap: 2rem;
+}
+a {
+    color: var(--color-gray-0);
+    text-decoration: none;
+}
+a:hover {
+    color: var(--color-twitch-alt);
 }
 
 button {
@@ -117,14 +144,19 @@ button.button-cancel:hover {
 }
 
 #introduction {
-    color: white;
     font-size: 1rem;
-    width: 24rem;
-    height: max-content;
+    line-height: 1.35;
     top: 50%;
     left: 50%;
     position: absolute;
     transform: translate(-50%, -50%);
+}
+#introduction .frame {
+    gap: 1.125rem;
+}
+#introduction img {
+    width: auto;
+    height: 2.75rem;
 }
 
 .frame {
@@ -133,7 +165,6 @@ button.button-cancel:hover {
     gap: .4rem;
 }
 .frame > * {
-    display: inline-flex;
 }
 .frame-vertical {flex-direction: column;}
 .frame-ralign {
@@ -153,8 +184,8 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     position: absolute;
     z-index: 2001;
     overflow: hidden;
-    padding: 0;
-    border-radius: .2rem;
+    padding: .25rem 0;
+    border-radius: .25rem;
 }
 #context-menu-content {
     position: relative;
@@ -187,7 +218,7 @@ body:not(.fullscreen) #btn-exit-fullscreen {
     height: 100%;
     line-height: 1;
     font-size: .85rem;
-    padding: .5rem 4rem .5rem .6rem;
+    padding: .4375rem 4rem .4375rem .625rem;
     font-weight: normal;
     text-align: left;
     transition: none;
@@ -301,6 +332,51 @@ input[type='range']::-webkit-slider-thumb {
     background: var(--color-gray-0);
     border-radius: 50%;
     box-shadow: 0 .2rem .4rem var(--color-shadow);
+}
+
+@keyframes show-disable-iframe-button {
+    from {
+        top: -1rem; opacity: 0.45;
+    }
+    to {
+        top: 1rem; opacity: 1;
+    }
+}
+#btn-disable-iframes {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(55, 55, 55, 0.7);
+    box-shadow: 0 .2rem .4rem rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: .875rem;
+    font-weight: normal;
+    padding: .625rem 1rem;
+    border-radius: 1rem;
+    z-index: 2001;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .75rem;
+    align-items: center;
+}
+body:not(.iframe-enabled) #btn-disable-iframes {
+    display: none;
+}
+body.iframe-enabled #btn-disable-iframes {
+    animation: show-disable-iframe-button cubic-bezier(0.22, 1, 0.36, 1) .4s 1;
+}
+#btn-disable-iframes i {
+    background-image: url(svg/close.svg);
+    background-size: auto 100%;
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    height: .75rem;
+    width: 1rem;
+    display: block;
+}
+#btn-disable-iframes:hover {
+    background-color: rgba(88, 88, 88, 0.7);
 }
 
 #modal-add-stream #input-streamer {
@@ -513,15 +589,14 @@ body:not(.still-cursor) .window.focused {
 }
 @keyframes iframe-hint {
     from {
-        background: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 1rem rgba(85, 126, 192, 0.2) inset;
     }
     to {
-        background: rgba(255, 255, 255, 0);
+        box-shadow: 0 0 2rem rgba(92, 137, 209, 0.795) inset;
     }
 }
 .window.iframe-enabled .window-content-overlay {
-    box-shadow: 0 0 1rem rgba(92, 152, 255, 0.75) inset; /* visual hint */
-    animation: cubic-bezier(0, 0.55, 0.45, 1) 1.5s 1 iframe-hint;
+    animation: cubic-bezier(0.22, 1, 0.36, 1) .4s 1 iframe-hint forwards;
     pointer-events: none;
 }
 
@@ -606,16 +681,29 @@ body:not(.still-cursor) .window.focused {
         </style>
     </head>
     <body>
+        <header>
+            <h1>Twitch3D</h1>
+        </header>
+        <footer>
+            <div class="frame">
+                <a target="_blank" href="https://github.com/hjjg200/twitch3d">GitHub</a>
+                <span>© 2021 hjjg200</span>
+            </div>
+        </footer>
         <main>
             <div id="introduction">
-                <h1>This Is Twitch3D</h1>
-                <p>Press <b>Right Mouse Button</b> to open up menu and add your favorite Twitch channels!</p>
-                <div class="frame frame-ralign">
+                <div class="frame">
+                    <img src="logo.png" alt="LOGO">
+                    <p>Press <b>Right Mouse Button</b> to open up menu and<br>add your favorite Twitch channels!</p>
                 </div>
             </div>
             <div id="streams-container">
 
             </div>
+            <button id="btn-disable-iframes">
+                <i></i>
+                <span>Leave Twitch UI</span>
+            </button>
             <div id="window-connections-indicator"></div>
             <div id="window-fully-maximized-representation" class="window">
                 <div class="window-relative">
@@ -741,7 +829,7 @@ const locales = {
     },
     "ko": {
         "#introduction h1": "트위치3D",
-        "#introduction p": "<b>오른쪽 마우스 버튼</b>으로 메뉴를 열어서 스트리머들을 추가해보세요!",
+        "#introduction p": "<b>오른쪽 마우스 버튼</b>으로 메뉴를<br>열어서 스트리머들을 추가해보세요!",
         "#btn-window-mute": "음소거",
         "#btn-window-unmute": "음소거 해제",
         "#btn-window-options": "플레이어 설정",
@@ -1839,6 +1927,7 @@ const btnAddStream = document.getElementById("btn-add-stream");
 const btnFullscreen = document.getElementById("btn-fullscreen");
 const btnExitFullscreen = document.getElementById("btn-exit-fullscreen");
 const btnGitHub = document.getElementById("btn-github");
+const btnDisableIframes = document.getElementById("btn-disable-iframes");
 document.addEventListener("contextmenu", (ev) => {
     ev.preventDefault();
 
@@ -2134,6 +2223,8 @@ const closeModal = (modal) => {
 
 let iframeEnabledWindow = null;
 const disableIframes = () => {
+    document.body.classList.remove("iframe-enabled");
+
     const winEls = document.querySelectorAll(".window.iframe-enabled");
     for(const el of winEls.values()) {
         el.classList.remove("iframe-enabled");
@@ -2165,16 +2256,16 @@ const disableIframes = () => {
 
 const enableIframe = (win) => {
     disableIframes();
+
+    document.body.classList.add("iframe-enabled");
+
     iframeEnabledWindow = win;
     win.contentElement.querySelector("iframe").focus();
     win.element.classList.add("iframe-enabled");
 };
 
-document.addEventListener("mouseover", (ev) => {
-    if(iframeEnabledWindow !== null) {
-        if(isContainedIn(ev.target, iframeEnabledWindow.element) === false)
-            disableIframes();
-    }
+btnDisableIframes.addEventListener("click", (ev) => {
+    disableIframes();
 });
 
 // Twitch methods
