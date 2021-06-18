@@ -6,7 +6,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="google-site-verification" content="xd6I9Z_Uazj4US1VyVmXHPiEXlYU5O-teEDfsLW8Kt8" />
-        
+
         <meta property="og:title" content="Twitch3D"/>
         <meta property="og:description" content="Watch multiple streams and move them with liberty"/>
         <meta property="og:url" content="https://hjjg200.github.io/twitch3d"/>
@@ -140,6 +140,11 @@ body.still-cursor main {
 }
 body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis).twitch-offline {
     opacity: 0;
+}
+
+body.window-in-move {
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 button.button-cancel {
@@ -1605,14 +1610,15 @@ class Window {
 
         const ignoreMaximizedThreshold = Rem.fromPixel(10);
 
-        const tok = lrWise === 0 ? tbWise >= 0 : tbWise === 1;
+        const move = tbWise === 0 && lrWise === 0;
+        const tok = move || tbWise === 1;
         const lok = tbWise === 0 ? lrWise >= 0 : lrWise === 1;
         const wok = lrWise !== 0;
         const hok = tbWise !== 0;
-        const move = tbWise === 0 && lrWise === 0;
 
         // class
         el.classList.add(move ? "in-move" : "in-resize");
+        document.body.classList.add("window-in-move");
 
         // Show maximized window
         if(win !== this.fullyMaximizedWindow) this.showMaximizedRepresentation();
@@ -1625,7 +1631,10 @@ class Window {
         let farthest = 0;
         this.stopResize();
         this._stopResize = (() => {
+
             win.element.classList.remove("in-move", "in-resize");
+            document.body.classList.remove("window-in-move");
+
             if(this._resizeHandler !== null) {
                 clearInterval(this._resizeHandler);
                 this._resizeHandler = null;
@@ -1715,35 +1724,24 @@ class Window {
 
             // Snapping
             connectCandidate = null;
-            const ratioSnapThreshold = 2; /* REM */
+            const ratioSnapThreshold = 1; /* REM */
             const ratioUnitLength = (height1 + width1) / (16+9);
             const snapRatio = 16 / 9;
             const ratioLowerBound = (ratioUnitLength*16 - ratioSnapThreshold) / (ratioUnitLength*9);
             const ratioUpperBound = (ratioUnitLength*16 + ratioSnapThreshold) / (ratioUnitLength*9);
             const ratio1 = width1 / height1;
-            if(ratio1 <= ratioUpperBound
+            if(!(ratio1 <= ratioUpperBound
                 && ratio1 >= ratioLowerBound
-                && !move) {
-                // Ratio snapping takes priority
-                if(wok) {
-                    // Height is standard
-                    const oldw = width1;
-                    width1 = height1 * snapRatio;
-                    if(lok) left1 += oldw - width1;
-                } else {
-                    const oldh = height1;
-                    height1 = width1 / snapRatio;
-                    if(hok) top1 += oldh - height1;
-                }
-            } else {
-                // Less priority
+                && !move)) {
+
+                // Snapping to nearby windows takes priority
                 if(tok || hok) {
                     const [ts, td, town] = snapHelper(top1, tDests);
                     const [bs, bd, bown] = snapHelper(top1 + height1, bDests);
                     let d = 0;
                     // Top takes priority
-                    if(bs) {d = bd; connectCandidate = bown;}
-                    if(ts && !(!move && tbWise === -1)) {d = td; connectCandidate = town;}
+                    if(bs && (move || tbWise === -1)) {d = bd; connectCandidate = bown;} // in-move or tbwise -1
+                    if(ts && (move || tbWise === 1)) {d = td; connectCandidate = town;}
                     if(tok) top1 += d;
                     if(hok) height1 += tok ? -d : d;
                 }
@@ -1752,10 +1750,24 @@ class Window {
                     const [rs, rd, rown] = snapHelper(left1 + width1, rDests);
                     let d = 0;
                     // Left takes priority
-                    if(rs) {d = rd; connectCandidate = rown;}
-                    if(ls && !(!move && lrWise === -1)) {d = ld; connectCandidate = lown;}
+                    if(rs && (move || lrWise === -1)) {d = rd; connectCandidate = rown;}
+                    if(ls && (move || lrWise === 1)) {d = ld; connectCandidate = lown;}
                     if(lok) left1 += d;
                     if(wok) width1 += lok ? -d : d;
+                }
+            } else {
+                // Ratio snapping has less priority
+
+                // Check which side to use as standard
+                if(wok) {
+                    // Height is standard
+                    const oldw = width1;
+                    width1 = height1 * snapRatio;
+                    if(lok) left1 += oldw - width1;
+                } else {
+                    const oldh = height1;
+                    height1 = width1 / snapRatio;
+                    if(tok) top1 += oldh - height1;
                 }
             }
        
