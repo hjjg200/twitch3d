@@ -1037,7 +1037,7 @@ const mouseHandler = (event) => {
     mouseX = Rem.fromPixel(event.pageX);
     mouseY = Rem.fromPixel(event.pageY);
     // Hiding cursor
-    if(mouseHideHandler !== null) clearTimeout(mouseHideHandler);
+    clearTimeout(mouseHideHandler);
     mouseHideHandler = setTimeout(((x, y) => {
         if(mouseX === x && mouseY === y) {
             document.body.classList.add("still-cursor");
@@ -1046,7 +1046,7 @@ const mouseHandler = (event) => {
     //
     setTimeout(() => {
         mouseThrottled = false;
-    }, 16);
+    }, 3);
 };
 document.addEventListener("mousemove", mouseHandler);
 
