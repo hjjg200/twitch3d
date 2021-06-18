@@ -2380,7 +2380,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
             const muted0 = player.getMuted();
             if(muted0 === muted) return;
             console.log("1", muted, muted0, player.getMuted());
-            originalSetMuted(muted);
+            console.log(originalSetMuted(muted));
             console.log("2", muted, muted0, player.getMuted());
             if(muted === false && player.getMuted() === true) {
                 alert(locales[lang]["%alert-unmute-failure"]);
