@@ -1320,6 +1320,9 @@ class Window {
             delete win1.connectedTo[this.id];
         }
 
+        if(this.isMaximized(true))
+            this.unmaximize();
+
         Window.windows.remove(this.id);
         this.element.parentNode.removeChild(this.element);
 
