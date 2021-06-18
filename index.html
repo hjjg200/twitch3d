@@ -2345,10 +2345,12 @@ const twitchQualityValueFromString = (quality) => {
     return h*(fps || 30);
 };
 const twtichValueOfQuality = (quality) => {
+    if(quality.group === "auto") return 0;
+    else if(quality.group === "chunked") return 60 * 1080 * 100;
     return quality.framerate*quality.height;
 };
 const twitchQualityComparator = (lhs, rhs) => {
-    return lhs.framerate*lhs.height - rhs.framerate*rhs.height;
+    return twtichValueOfQuality(lhs) - twtichValueOfQuality(rhs);
 };
 const storeTwitchSerialization = () => {
     localStorage.setItem("t3d-twitch", JSON.stringify(twitchComponents));
