@@ -364,7 +364,7 @@ input[type='range']::-webkit-slider-thumb {
     color: white;
     font-size: .875rem;
     font-weight: bold;
-    padding: .625rem 1rem;
+    padding: .75rem 1rem;
     border-radius: 1rem;
     z-index: 2001;
     display: flex;
@@ -380,15 +380,18 @@ body.iframe-enabled #btn-disable-iframes {
 }
 #btn-disable-iframes i {
     background-image: url(svg/close.svg);
-    background-size: auto 100%;
+    background-size: auto 90%;
     background-position: 50% 50%;
     background-repeat: no-repeat;
-    height: .75rem;
+    height: 1em;
     width: 1rem;
     display: block;
 }
+#btn-disable-iframes span {
+    line-height: 1em;
+}
 #btn-disable-iframes:hover {
-    background-color: rgba(88, 88, 88, 0.95);
+    background-color: rgba(77, 77, 77, 0.95);
 }
 
 #modal-add-stream #input-streamer {
@@ -840,8 +843,7 @@ const locales = {
         "%quality-source": "Source"
     },
     "ko": {
-        "#introduction h1": "트위치3D",
-        "#introduction p": "<b>오른쪽 마우스 버튼</b>으로 메뉴를<br>열어서 스트리머들을 추가해보세요!",
+        "#introduction p": "<b>오른쪽 마우스 버튼</b>으로 메뉴를 열어서<br>스트리머들을 추가해보세요!",
         "#btn-window-mute": "음소거",
         "#btn-window-unmute": "음소거 해제",
         "#btn-window-options": "플레이어 설정",
@@ -852,8 +854,9 @@ const locales = {
         "#btn-fullscreen": "전체화면",
         "#btn-exit-fullscreen": "전체화면 나가기",
         "#btn-github": "버그 신고하기",
+        "#btn-disable-iframes span": "트위치 UI 나가기",
         "#modal-add-stream h2": "채널 추가",
-        "#modal-add-stream h2 + p": "추가할 스트리머의 Twitch 아이디를 입력하세요",
+        "#modal-add-stream h2 + p": "추가할 스트리머의 트위치 아이디를 입력하세요",
         "#modal-add-stream [for='input-with-chat'] span": "채팅 포함",
         "#modal-window-options h2": "플레이어 설정",
         "#modal-window-options [for='range-volume'] > span": "음량",
