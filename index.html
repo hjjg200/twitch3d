@@ -2378,12 +2378,13 @@ const addTwitchComponent = (win, channel, chat, options) => {
         const originalSetQuality = player.setQuality;
         player.setMuted = (muted) => {
             const muted0 = player.getMuted();
-            if(muted0 === muted) return;
-            console.log("1", muted, muted0, player.getMuted(), player.getPlayerState().muted);
-            console.log(originalSetMuted(muted));
-            console.log("2", muted, muted0, player.getMuted(), player.getPlayerState().muted);
-            if(muted === false && player.getMuted() === true) {
-                alert(locales[lang]["%alert-unmute-failure"]);
+            try {
+                if(muted0 === muted) return;
+                originalSetMuted(muted);
+            } finally {
+                if(muted === false && player.getMuted() === true) {
+                    alert(locales[lang]["%alert-unmute-failure"]);
+                }
             }
         };
         player.setVolume = (volume) => {
