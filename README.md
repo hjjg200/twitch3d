@@ -1,9 +1,17 @@
-# Twitch3D
 
-Watch multiple streams and move or scale them as you please.
 
-https://hjjg200.github.io/twitch3d
-
+<div align="center">
+  <h1>
+    <img src="https://hjjg200.github.io/twitch3d/logo.png" height="38px">
+    <sup>Twitch3D</sup>
+  </h1>
+  
+  <p>
+Watch multiple streams and move or scale them as you please. 
+<br>https://hjjg200.github.io/twitch3d
+  </p>
+</div>
+  
 ## Known Issues
 
 - Embedded Twitch players tend to show some purple screen due to Twitch's embedding policies. https://discuss.dev.twitch.tv/t/getting-a-message-on-my-embeds-that-goes-away-after-a-while/29592
