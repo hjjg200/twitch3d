@@ -2380,11 +2380,16 @@ const addTwitchComponent = (win, channel, chat, options) => {
             const muted0 = player.getMuted();
             if(muted0 === muted) return;
             player._setMuted(muted);
-            (async() => {
+            // TODO / ISSUE
+            // Don't know why but setMuted takes ~15 milliseconds to make effect while API docs
+            // say that it is a synchronous call. It seems it has something to do with the
+            // postMessage handling on the twitch.tv iframe side
+            // This is the reason for setTimeout with 300 delay at the moment
+            setTimeout(() => {
                 if(muted === false && player.getMuted() === true) {
                     alert(locales[lang]["%alert-unmute-failure"]);
                 }
-            })();
+            }, 300);
         };
         player.setVolume = (volume) => {
             if(player.online === false) return;
