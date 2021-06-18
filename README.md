@@ -1,4 +1,4 @@
-# twitch3d
+# Twitch3D
 
 Watch multiple streams and move or scale them as you please.
 
@@ -40,7 +40,7 @@ https://hjjg200.github.io/twitch3d
 - [x] Better handling of auto-mute policy for better UX
 - [x] Open chat menu for players
 - [x] Make measure for: streams don't support Source quality when it just got online
-- [ ] Better `#introduction`
+- [x] Better `#introduction`
 - [ ] Layout put as query string (compressed json)
 - [ ] Add opacity to window options
 - [ ] Discord for communication

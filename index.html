@@ -320,7 +320,7 @@ input[type='text']:hover {
 }
 input[type='text']:focus {
     box-shadow: 0 0 0 .125rem var(--color-twitch-alt) inset;
-    background: var(--color-background-3);
+    background: var(--color-background-2);
 }
 input[type='range'] {
     width: 100%;
@@ -1995,15 +1995,22 @@ document.addEventListener("contextmenu", (ev) => {
     ctxMenu.style.top = Rem.toString(top);
     ctxMenu.style.left = Rem.toString(left);
 });
+let docLastMouseDownOn = null;
 document.addEventListener("mousedown", (ev) => {
     disableIframes();
-    if(!isContainedIn(ev.target, ctxMenu)) {
+    const t = ev.target;
+    docLastMouseDownOn = t;
+
+    if(!isContainedIn(t, ctxMenu)) {
         ctxMenu.style.display = "";
     }
 });
 document.addEventListener("mouseup", (ev) => {
     const t = ev.target;
-    if(!isContainedInSelector(t, ".modal-content")
+
+    // Without this user who dragged stuff in textbox can be annoyed by modal getting closed
+    if(docLastMouseDownOn === t
+        && !isContainedInSelector(t, ".modal-content")
         && isContainedInSelector(t, ".modal")) {
         for(const modal of modals.values()) {
             closeModal(modal);
@@ -2101,6 +2108,12 @@ const closeModal = (modal) => {
         withChat.checked = false;
         closeModal(modalAddStream);
     };
+    streamer.addEventListener("input", (ev) => {
+        let val = streamer.value;
+        if(val.indexOf("twitch.tv/") !== -1) {
+            streamer.value = val.split("twitch.tv/").reverse()[0].split(/[?/]/g)[0];
+        }
+    });
     modalAddStream.addEventListener("modalopen", (ev) => {
         [top, left] = [
             Rem.fromString(ctxMenu.style.top),
@@ -2366,7 +2379,9 @@ const addTwitchComponent = (win, channel, chat, options) => {
         player.setMuted = (muted) => {
             const muted0 = player.getMuted();
             if(muted0 === muted) return;
+            console.log("1", muted, muted0, player.getMuted());
             originalSetMuted(muted);
+            console.log("2", muted, muted0, player.getMuted());
             if(muted === false && player.getMuted() === true) {
                 alert(locales[lang]["%alert-unmute-failure"]);
             }
