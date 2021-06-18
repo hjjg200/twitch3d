@@ -356,13 +356,13 @@ input[type='range']::-webkit-slider-thumb {
     box-shadow: 0 .2rem .4rem rgba(0, 0, 0, 0.2);
     color: white;
     font-size: .875rem;
-    font-weight: normal;
+    font-weight: bold;
     padding: .625rem 1rem;
     border-radius: 1rem;
     z-index: 2001;
     display: flex;
     flex-wrap: nowrap;
-    gap: .875rem;
+    gap: .625rem;
     align-items: center;
 }
 body:not(.iframe-enabled) #btn-disable-iframes {
@@ -2373,13 +2373,13 @@ const addTwitchComponent = (win, channel, chat, options) => {
             win.element.classList.add("twitch-offline");
             player.online = false;
         });
-        const originalSetMuted = player.setMuted;
-        const originalSetVolume = player.setVolume;
-        const originalSetQuality = player.setQuality;
+        player._setMuted = player.setMuted;
+        player._setVolume = player.setVolume;
+        player._setQuality = player.setQuality;
         player.setMuted = (muted) => {
             const muted0 = player.getMuted();
             if(muted0 === muted) return;
-            originalSetMuted(muted);
+            player._setMuted(muted);
             (async() => {
                 if(muted === false && player.getMuted() === true) {
                     alert(locales[lang]["%alert-unmute-failure"]);
@@ -2388,7 +2388,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
         };
         player.setVolume = (volume) => {
             if(player.online === false) return;
-            originalSetVolume(volume);
+            player._setVolume(volume);
         };
         player.setQuality = (quality) => {
             if(player.online === false) return;
@@ -2402,7 +2402,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
                     break;
                 }
             }
-            originalSetQuality(quality);
+            player._setQuality(quality);
         };
         win.addEventListener("maximize", (ev) => {
             player.setOptions();
