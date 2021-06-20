@@ -2,8 +2,8 @@
 
 <div align="center">
   <h1>
-    <img src="https://hjjg200.github.io/twitch3d/logo.png" height="38px">
-    <sup>Twitch3D</sup>
+    <sub><img src="https://hjjg200.github.io/twitch3d/logo.png" height="34px"></sub>
+    Twitch3D
   </h1>
   
   <p>
