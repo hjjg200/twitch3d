@@ -2497,6 +2497,54 @@ const htoi = (str, isrem, basepx) => {
     }
 };
 
+const encodeItemsToBase64 = (items) => {
+    let encoded = "";
+    let count = 0;
+    let cache = 0;
+
+    const mask = 0x3f;
+    const pad = "_";
+    const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.";
+    const push = byte => {
+        if(byte !== null) {
+            cache = cache * 256 + byte;
+            count++;
+        }
+
+        // 0b____11000000
+        if(count === 3 || (byte === null && count > 0)) {
+            cache *= 4**(3-count);
+            for(let i = count; i >= 0; i--) { // 4 6-bit for count 3
+                encoded += alpha.charAt((cache / 64**i) & mask);
+            }
+            encoded += pad.repeat(3 - count);
+            cache = 0;
+            count = 0;
+        }
+    };
+    const flush = () => push(null);
+
+    for(const each of items) {
+        if(typeof each === "string") {
+            for(let i = 0; i < each.length; i += 3) {
+                const part = each.slice(i, Math.min(each.length, i + 3));
+                for(let j = 0; j < part.length; j++) {
+                    push(part.charCodeAt(j) & 0xff);
+                }
+            }
+        } else if(typeof each === "number") {
+            if(each >= 256) {
+                throw "Bytes must be put one by one";
+            }
+            push(each);
+        } else {
+            throw "Unsupported type for base64 encoding";
+        }
+    }
+    flush();
+    return encoded;
+};
+
 const serializeAnchor = anchor => {
     let serial = "";
     /*
