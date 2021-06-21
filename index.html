@@ -2285,21 +2285,10 @@ const closeModal = (modal) => {
 
 let iframeEnabledWindow = null;
 const disableIframes = () => {
-    document.body.classList.remove("iframe-enabled");
 
-    const winEls = document.querySelectorAll(".window.iframe-enabled");
-    for(const el of winEls.values()) {
-        el.classList.remove("iframe-enabled");
-        el.querySelector("iframe").blur();
-    }
-    iframeEnabledWindow = null;
-    // Store twitch options
-    for(const id of Object.keys(twitchPlayers)) {
-        const win = Window.windows.get(id);
-        if(win === null) {
-            delete twitchPlayers[id];
-            continue;
-        }
+    if(iframeEnabledWindow !== null) {
+        const win = iframeEnabledWindow;
+        const id = win.id;
         const player = twitchPlayers[id];
         const maximized = win.isMaximized(true);
         const options = twitchComponents[id].options;
@@ -2312,8 +2301,17 @@ const disableIframes = () => {
                 options.quality = player.getQuality();
             }
         }
+        iframeEnabledWindow = null;
+        storeTwitchSerialization();
     }
-    storeTwitchSerialization();
+
+    document.body.classList.remove("iframe-enabled");
+
+    const winEls = document.querySelectorAll(".window.iframe-enabled");
+    for(const el of winEls.values()) {
+        el.classList.remove("iframe-enabled");
+        el.querySelector("iframe").blur();
+    }
 }
 
 const enableIframe = (win) => {
