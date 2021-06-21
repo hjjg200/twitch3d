@@ -2533,8 +2533,8 @@ const encodeItemsToBase64 = (items) => {
                 }
             }
         } else if(typeof each === "number") {
-            if(each >= 256) {
-                throw "Bytes must be put one by one";
+            if(each >= 256 || each < 0) {
+                throw "Only 8-bit unsigned integer is allowed";
             }
             push(each);
         } else {
