@@ -2450,35 +2450,163 @@ const addTwitchComponent = (win, channel, chat, options) => {
     storeTwitchSerialization();
 };
 
+// Serializaiton
+
+const btoh = i8 => {
+    let s = (i8 & 0xff).toString(16);
+    if(s.length === 1) s = `0${s}`;
+    return s;
+};
+
+/*
+Value Range
+- px
+    - 3-byte -8388608 ~ 8388607
+- ratio
+    - -3.00 ~ 3.00
+*/
+const serialRatioCoef = (2**23-1)/3;
+const i24min = -(2**23);
+const itoh = (num, isrem) => {
+
+    if(isrem) {
+        num = Rem.toPixel(num);
+    } else {
+        num *= serialRatioCoef;
+    }
+    num -= i24min;
+    num = Math.round(num); // bit shift operation discards what's after decimal point
+
+    let h = "";
+    for(let i = 0; i < 3; i++) {
+        const b = (num >>> i*8) & 0xff;
+        h = `${btoh(b)}` + h;
+    }
+    return h;
+};
+
+const htoi = (str, isrem, basepx) => {
+    let num = parseInt(str, 16);
+    num += i24min;
+    if(isrem) {
+        if(basepx === undefined) {
+            console.error("basepx is not defined");
+            return NaN;
+        }
+        return num / basepx;
+    } else {
+        return num / serialRatioCoef;
+    }
+};
+
+const serializeAnchor = anchor => {
+    let serial = "";
+    /*
+1               
+tb type, lr type, tbv is rem, lrv is rem
+2-4              | 3-4              | 6-7
+tb value(3-byte) | tb ratio(2-byte) | tb length(2-byte)
+8-10             | 11-12            | 13-14
+lr value(3-byte) | lr ratio(2-byte) | lr length(2-byte)
+    */
+
+    const ary = [];
+
+    const tbrem = anchor.TopBottom.Type !== Window.AnchorTypes.MIDDLE;
+    const lrrem = anchor.LeftRight.Type !== Window.AnchorTypes.MIDDLE;
+
+    ary.push(btoh(
+        (anchor.TopBottom.Type << 4)
+        | (anchor.LeftRight.Type << 2)
+        | (tbrem << 1)
+        | lrrem
+    ));
+    ary.push(itoh(anchor.TopBottom.Value, tbrem));
+    ary.push(itoh(anchor.TopBottom.Ratio, false));
+    ary.push(itoh(anchor.TopBottom.Length, false));
+    ary.push(itoh(anchor.LeftRight.Value, lrrem));
+    ary.push(itoh(anchor.LeftRight.Ratio, false));
+    ary.push(itoh(anchor.LeftRight.Length, false));
+
+    return ary.join("");
+};
+
+const deserializeAnchor = (serial, basepx) => {
+    const [s_t, s_tbv, s_tbr, s_tbl,
+        s_lrv, s_lrr, s_lrl] = [
+        serial.slice(0, 2),
+        serial.slice(2, 8),
+        serial.slice(8, 14),
+        serial.slice(14, 20),
+        serial.slice(20, 26),
+        serial.slice(26, 32),
+        serial.slice(32, 38)
+    ];
+
+    const t = parseInt(s_t, 16);
+    const tbrem = (t >>> 1) & 1;
+    const lrrem = t & 1;
+    return {
+        TopBottom: {
+            Type: (t >>> 4) & 0x3,
+            Value: htoi(s_tbv, tbrem, basepx),
+            Ratio: htoi(s_tbr, false),
+            Length: htoi(s_tbl, false)
+        },
+        LeftRight: {
+            Type: (t >>> 2) & 0x3,
+            Value: htoi(s_lrv, lrrem, basepx),
+            Raito: htoi(s_lrr, false),
+            Length: htoi(s_lrl, false)
+        }
+    };
+};
+
+const getActiveTwitchChannels = () => {
+    const map = {};
+    for(const each of Object.values(twitchComponents)) {
+        map[each.channel] = null;
+    }
+    return Object.keys(map).sort();
+};
+
+const getWindowsFromTail = () => {
+    const ary = [];
+    let n = Window.windows.head;
+    while(n !== null) {
+        ary.push(n.value);
+        n = n.prev;
+    }
+    return ary.reverse();
+};
+
+const serializeTwitch = () => {
+    const windows = getWindowsFromTail();
+    const channels = getActiveTwitchChannels();
+    let serial = "";
+    let i = 0;
+
+    for(const each of Object.values(twitchComponents)) {
+        if(i > 0) serial += "+";
+
+        serial += btoh(channels.indexOf(each.channel));
+        serial += each.chat ? "T" : "F";
+        if(!each.chat) {
+            
+        }
+        i++;
+    }
+
+};
+
 /*
 
-{
-    windows: [
-        // from dll.head to tail reversed
-        {
-            id: ...,
-            top: ...,
-            left: ...,
-            width: ...,
-            height: ...,
-            connectedTo: [...ids],
-            xMaximized: false,
-            yMaximized: false
-        }
-    ],
-    windowsTwitch: {
-        "window-id": {
-            channel: "...",
-            chat: false,
-            volume: 0.0,
-            quality: "...",
-            maximizedVolume: 0.0,
-            maximizedQuality: "..."
-        }
-    }
-}
+?s=streamer1,streamer2,streamer3
+&w=<b64>+<b64>+<b64>
+&t=<channel-idx, if chat, options>
 
 */
+
 
 {
     const t3dWindows = localStorage.getItem("t3d-windows");
