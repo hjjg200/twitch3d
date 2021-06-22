@@ -2699,6 +2699,9 @@ const getWindowIdsFromTail = () => {
 };
 
 const updateT3DQuery = preset => {
+
+    // TODO fix updatequery being called every time new window is added when applying query
+    console.trace();
     const baseWindowIds = getWindowIdsFromTail();
     const baseChannels = getActiveTwitchChannels();
     const basepx = Rem.fontSize;
@@ -2712,6 +2715,7 @@ const updateT3DQuery = preset => {
         // w
         const wary = [];
         wary.push(encodeItemsToBase64([basepx]));
+        console.log("IDS", baseWindowIds);
         for(const id of baseWindowIds) {
             wary.push(serializeWindow(Window.windows.get(id), baseWindowIds, basepx));
         }
