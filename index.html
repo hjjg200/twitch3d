@@ -2497,8 +2497,8 @@ const htoi = (str, isrem, basepx) => {
     }
 };
 
-const base64Alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-."; // Notice -. at the end
-const base64Pad = "_"; // pad is changed from = to _ to make it url-safe
+// Padless url-safe base64
+const base64Alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"; // Notice -_ at the end
 const encodeItemsToBase64 = (items) => {
     let encoded = "";
     let count = 0;
@@ -2516,7 +2516,6 @@ const encodeItemsToBase64 = (items) => {
             for(let i = count; i >= 0; i--) { // 4 6-bit for count 3
                 encoded += base64Alpha.charAt((cache / 64**i) & mask);
             }
-            encoded += base64Pad.repeat(3 - count);
             cache = 0;
             count = 0;
         }
@@ -2551,7 +2550,7 @@ const decodeBase64ToBytes = encoded => {
         let value = 0;
         let count = 0;
 
-        for(let j = 0; j < (part.indexOf(base64Pad)+5) % 5; j++) {
+        for(let j = 0; j < part.length; j++) {
             const char = part.charAt(j);
             value = value * 64 + base64Alpha.indexOf(char);
             count++;
