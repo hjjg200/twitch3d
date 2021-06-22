@@ -1313,7 +1313,8 @@ class Window {
 
         //
         this.addEventListener("change", () => {
-            Window.storeSerialization();
+            //Window.storeSerialization();
+            updateT3DQuery();
         });
         this.dispatchEvent(new Event("change"));
 
@@ -1534,8 +1535,7 @@ class Window {
         }
         return JSON.stringify(ary.reverse());
     }
-    static interpretSerialization(serialization) {
-        const ary = JSON.parse(serialization);
+    static interpretInfoArray(ary) {
         for(let i = 0; i < ary.length; i++) {
             const each = ary[i];
             new Window({
@@ -1551,6 +1551,7 @@ class Window {
                 yMaximized: each.yMaximized,
                 anchor: each.anchor
             });
+            console.log(each);
         }
     }
     static _resizeHandler = null;
@@ -1939,7 +1940,8 @@ window.addEventListener("resize", () => {
             }
         }
 
-        Window.storeSerialization();
+        //Window.storeSerialization();
+        updateT3DQuery();
     }, 50);
 });
 
@@ -2263,7 +2265,8 @@ const closeModal = (modal) => {
     });
 
     modalWindowOptions.addEventListener("modalclose", (ev) => {
-        storeTwitchSerialization();
+        //storeTwitchSerialization();
+        updateT3DQuery();
     });
 
     btnOK.addEventListener("mouseup", (ev) => {
@@ -2302,7 +2305,8 @@ const disableIframes = () => {
             }
         }
         iframeEnabledWindow = null;
-        storeTwitchSerialization();
+        //storeTwitchSerialization();
+        updateT3DQuery();
     }
 
     document.body.classList.remove("iframe-enabled");
@@ -2356,17 +2360,17 @@ const twitchQualityComparator = (lhs, rhs) => {
 const storeTwitchSerialization = () => {
     localStorage.setItem("t3d-twitch", JSON.stringify(twitchComponents));
 };
-const interpretTwitchComponents = (serialization) => {
-    const obj = JSON.parse(serialization);
-    for(const key of Object.keys(obj)) {
-        const each = obj[key];
+const interpretTwitchComponents = (components) => {
+    for(const key of Object.keys(components)) {
+        const each = components[key];
         const win = Window.windows.get(key);
         if(win === null) {
             continue;
         }
         addTwitchComponent(win, each.channel, each.chat, each.options);
     }
-    storeTwitchSerialization();
+    //storeTwitchSerialization();
+    updateT3DQuery();
 };
 const addTwitchComponent = (win, channel, chat, options) => {
     win.setTitle(`${channel}`);
@@ -2445,7 +2449,8 @@ const addTwitchComponent = (win, channel, chat, options) => {
         chat,
         options
     };
-    storeTwitchSerialization();
+    //storeTwitchSerialization();
+    updateT3DQuery();
 };
 
 // Serializaiton
@@ -2534,6 +2539,7 @@ const encodeItemsToBase64 = (items) => {
             }
         } else if(typeof each === "number") {
             if(each >= 256 || each < 0) {
+                console.trace();
                 throw "Only 8-bit unsigned integer is allowed";
             }
             push(each);
@@ -2638,11 +2644,13 @@ const serializeWindow = (win, baseWindowIds, basepx) => {
     bytes.push(...serializeAnchor(win.anchor, basepx, true));
 
     // connected to
+    // TODO fix connectedTo
     const ckeys = Object.keys(win.connectedTo);
     bytes.push(ckeys.length);
     for(const id1 of ckeys) {
         bytes.push(baseWindowIds.indexOf(id1));
     }
+    console.log(win.id, bytes);
 
     return encodeItemsToBase64(bytes);
 };
@@ -2672,7 +2680,9 @@ const deserializeWindow = (serial, baseWindowIds, basepx) => {
 
 const getActiveTwitchChannels = () => {
     const map = {};
-    for(const each of Object.values(twitchComponents)) {
+    for(const id of Object.keys(twitchComponents)) {
+        if(Window.windows.get(id) === null) continue;
+        const each = twitchComponents[id];
         map[each.channel] = null;
     }
     return Object.keys(map).sort();
@@ -2688,77 +2698,100 @@ const getWindowIdsFromTail = () => {
     return ary.reverse();
 };
 
-const updateT3DQuery = () => {
+const updateT3DQuery = preset => {
     const baseWindowIds = getWindowIdsFromTail();
     const baseChannels = getActiveTwitchChannels();
     const basepx = Rem.fontSize;
 
     let s, w, ca, t;
-    // s
-    s = baseChannels.join(" ");
 
-    // w
-    const wary = [];
-    wary.push(encodeItemsToBase64([basepx]));
-    for(const id of baseWindowIds) {
-        wary.push(serializeWindow(Window.windows.get(id), baseWindowIds, basepx));
-    }
-    w = wary.join(" ");
+    if(preset === undefined) {
+        // s
+        s = baseChannels.join(" ");
 
-    // ca connections anchors
-    const caary = [];
-    {
-        let visited = {};
-        for(const id0 of baseWindowIds) {
-            if(id0 in visited) continue;
-            visited[id0] = null;
-
-            const win0 = Window.windows.get(id0);
-            const connections = win0.connections();
-            visited = {...visited, ...connections};
-
-            caary.push(encodeItemsToBase64([
-                baseWindowIds.indexOf(id0),
-                ...serializeAnchor(win0.connectionsAnchor, basepx, true)
-            ]));
+        // w
+        const wary = [];
+        wary.push(encodeItemsToBase64([basepx]));
+        for(const id of baseWindowIds) {
+            wary.push(serializeWindow(Window.windows.get(id), baseWindowIds, basepx));
         }
-    }
-    ca = caary.join(" ");
+        w = wary.join(" ");
 
-    // t
-    const tary = [];
-    for(const id of Object.keys(twitchComponents)) {
-        const each = twitchComponents[id];
-        const items = [];
-        items.push(baseWindowIds.indexOf(id));
-        items.push(baseChannels.indexOf(each.channel));
-        items.push(each.chat ? 1 : 0);
-        if(!each.chat) {
-            const options = each.options;
-            items.push(Math.round(options.volume * 100));
-            items.push(options.quality.length);
-            items.push(options.quality);
-            items.push(Math.round(options.maximizedVolume * 100));
-            items.push(options.maximizedQuality.length);
-            items.push(options.maximizedQuality);
+        // ca connections anchors
+        const caary = [];
+        {
+            let visited = {};
+            for(const id0 of baseWindowIds) {
+                if(id0 in visited) continue;
+                visited[id0] = null;
+
+                const win0 = Window.windows.get(id0);
+                const connections = win0.connections();
+                visited = {...visited, ...connections};
+
+                caary.push(encodeItemsToBase64([
+                    baseWindowIds.indexOf(id0),
+                    ...serializeAnchor(win0.connectionsAnchor, basepx, true)
+                ]));
+            }
         }
-        tary.push(encodeItemsToBase64(items));
+        ca = caary.join(" ");
+
+        // t
+        const tary = [];
+        for(const id of Object.keys(twitchComponents)) {
+            if(Window.windows.get(id) === null) continue;
+
+            const each = twitchComponents[id];
+            const items = [];
+            items.push(baseWindowIds.indexOf(id));
+            items.push(baseChannels.indexOf(each.channel));
+            items.push(each.chat ? 1 : 0);
+            if(!each.chat) {
+                const options = each.options;
+                items.push(Math.round(options.volume * 100));
+                items.push(options.quality.length);
+                items.push(options.quality);
+                items.push(Math.round(options.maximizedVolume * 100));
+                items.push(options.maximizedQuality.length);
+                items.push(options.maximizedQuality);
+            }
+            tary.push(encodeItemsToBase64(items));
+        }
+        t = tary.join(" ");
+
+        localStorage.setItem("t3d-query", JSON.stringify({
+            s, w, ca, t
+        }));
+    } else {
+        s = preset.s;
+        w = preset.w;
+        ca = preset.ca;
+        t = preset.t;
     }
-    t = tary.join(" ");
+
+    if(s === "") {
+        history.replaceState(null, document.title, window.location.pathname);
+        return;
+    }
 
     s = s.replaceAll(" ", "+");
     w = w.replaceAll(" ", "+");
     ca = ca.replaceAll(" ", "+");
     t = t.replaceAll(" ", "+");
-
-    history.pushState(null, document.title, `?s=${s}&w=${w}&ca=${ca}&t=${t}`);
+    history.replaceState(null, document.title, `?s=${s}&w=${w}&ca=${ca}&t=${t}`);
 };
 
-const applyT3DQuery = () => {
-    const params = Object.fromEntries((new URLSearchParams(window.location.search)).entries());
+const applyT3DQuery = params => {
+    params = params || Object.fromEntries((new URLSearchParams(window.location.search)).entries());
+
+    if(!('s' in params && 'w' in params && 'ca' in params && 't' in params))
+        return false;
+
+    console.log(params);
 
     const wary = params.w.split(" ");
-    const caary = params.w.split(" ");
+    const caary = params.ca.split(" ");
     const tary = params.t.split(" ");
 
     const basepx = decodeBase64ToBytes(wary[0])[0];
@@ -2766,11 +2799,14 @@ const applyT3DQuery = () => {
     const baseChannels = params.s.split(" ");
 
     // w
+    const windowInfos = [];
     const windowInfoMap = {};
     for(let i = 1; i < wary.length; i++) {
         const id = baseWindowIds[i-1];
         const wserial = wary[i];
         const info = deserializeWindow(wserial, baseWindowIds, basepx);
+        info.id = id;
+        windowInfos.push(info);
         windowInfoMap[id] = info;
     }
 
@@ -2779,7 +2815,7 @@ const applyT3DQuery = () => {
         const cavals = [];
         for(const ca of caary) {
             const bytes = decodeBase64ToBytes(ca);
-
+            console.log("A",deserializeAnchor(bytes.slice(1, bytes.length), basepx));
             cavals.push({
                 id: baseWindowIds[bytes[0]],
                 anchor: deserializeAnchor(bytes.slice(1, bytes.length), basepx)
@@ -2838,7 +2874,12 @@ const applyT3DQuery = () => {
             };
         }
     }
-    console.log(tcomps);
+    
+    Window.interpretInfoArray(windowInfos);
+    interpretTwitchComponents(tcomps);
+
+    return true;
+
 };
 
 /*
@@ -2851,13 +2892,20 @@ const applyT3DQuery = () => {
 
 
 {
-    const t3dWindows = localStorage.getItem("t3d-windows");
-    if(t3dWindows !== null) Window.interpretSerialization(t3dWindows);
-    const t3dTwitch = localStorage.getItem("t3d-twitch");
-    if(t3dTwitch !== null) interpretTwitchComponents(t3dTwitch);
-
-    // Fire resize event for repositioning
-    window.dispatchEvent(new Event('resize'));
+    try {
+        if(!applyT3DQuery()) {
+            const t3dQuery = localStorage.getItem("t3d-query");
+            if(t3dQuery !== null) {
+                const preset = JSON.parse(t3dQuery);
+                applyT3DQuery(preset);
+                updateT3DQuery(preset);
+            }
+        }
+        // Fire resize event for repositioning
+        window.dispatchEvent(new Event('resize'));
+    } catch(ex) {
+        console.error(ex);
+    }
 }
 
         </script>
