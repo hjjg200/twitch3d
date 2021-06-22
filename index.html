@@ -2465,26 +2465,28 @@ Value Range
 */
 const serialRatioCoef = (2**23-1)/3;
 const i24min = -(2**23);
-const itoh = (num, isrem) => {
+const itop = (num, isrem, basepx) => {
 
     if(isrem) {
-        num = Rem.toPixel(num);
+        num *= basepx;
     } else {
         num *= serialRatioCoef;
     }
     num -= i24min;
     num = Math.round(num); // bit shift operation discards what's after decimal point
 
-    let h = "";
+    const ary = [];
     for(let i = 0; i < 3; i++) {
-        const b = (num >>> i*8) & 0xff;
-        h = `${btoh(b)}` + h;
+        ary.push((num >>> i*8) & 0xff);
     }
-    return h;
+    return ary;
 };
 
-const htoi = (str, isrem, basepx) => {
-    let num = parseInt(str, 16);
+const ptoi = (ary, isrem, basepx) => {
+    let num = 0;
+    for(let i = ary.length; i > 0; i--) {
+        num = num * 256 + ary[i-1];
+    }
     num += i24min;
     if(isrem) {
         if(basepx === undefined) {
@@ -2556,6 +2558,7 @@ const decodeBase64ToBytes = encoded => {
             count++;
         }
         count = count - 1; // 3 bytes for 4 6-bit chars
+        value /= 4**(3-count); // Shift right in order to remove pad
 
         for(let j = count; j > 0; j--) {
             bytes.push((value / 256**(j-1)) & 0xff);
@@ -2564,15 +2567,16 @@ const decodeBase64ToBytes = encoded => {
     return bytes;
 };
 
-const serializeAnchor = anchor => {
+const anchorSerialLength = 19;
+const serializeAnchor = (anchor, basepx, raw) => {
     let serial = "";
     /*
 1               
 tb type, lr type, tbv is rem, lrv is rem
-2-4              | 3-4              | 6-7
-tb value(3-byte) | tb ratio(2-byte) | tb length(2-byte)
-8-10             | 11-12            | 13-14
-lr value(3-byte) | lr ratio(2-byte) | lr length(2-byte)
+2-4              | 5-7              | 8-10
+tb value(3-byte) | tb ratio(3-byte) | tb length(3-byte)
+11-13            | 14-16            | 17-19
+lr value(3-byte) | lr ratio(3-byte) | lr length(3-byte)
     */
 
     const ary = [];
@@ -2580,51 +2584,90 @@ lr value(3-byte) | lr ratio(2-byte) | lr length(2-byte)
     const tbrem = anchor.TopBottom.Type !== Window.AnchorTypes.MIDDLE;
     const lrrem = anchor.LeftRight.Type !== Window.AnchorTypes.MIDDLE;
 
-    ary.push(btoh(
+    ary.push(
         (anchor.TopBottom.Type << 4)
         | (anchor.LeftRight.Type << 2)
         | (tbrem << 1)
         | lrrem
-    ));
-    ary.push(itoh(anchor.TopBottom.Value, tbrem));
-    ary.push(itoh(anchor.TopBottom.Ratio, false));
-    ary.push(itoh(anchor.TopBottom.Length, false));
-    ary.push(itoh(anchor.LeftRight.Value, lrrem));
-    ary.push(itoh(anchor.LeftRight.Ratio, false));
-    ary.push(itoh(anchor.LeftRight.Length, false));
+    );
+    ary.push(...itop(anchor.TopBottom.Value, tbrem, basepx));
+    ary.push(...itop(anchor.TopBottom.Ratio, false));
+    ary.push(...itop(anchor.TopBottom.Length, false));
+    ary.push(...itop(anchor.LeftRight.Value, lrrem, basepx));
+    ary.push(...itop(anchor.LeftRight.Ratio, false));
+    ary.push(...itop(anchor.LeftRight.Length, false));
 
-    return ary.join("");
+    if(ary.length !== anchorSerialLength) throw "Error in serializaiton";
+
+    if(raw === true) return ary;
+
+    return encodeItemsToBase64(ary);
 };
 
 const deserializeAnchor = (serial, basepx) => {
-    const [s_t, s_tbv, s_tbr, s_tbl,
-        s_lrv, s_lrr, s_lrl] = [
-        serial.slice(0, 2),
-        serial.slice(2, 8),
-        serial.slice(8, 14),
-        serial.slice(14, 20),
-        serial.slice(20, 26),
-        serial.slice(26, 32),
-        serial.slice(32, 38)
-    ];
-
-    const t = parseInt(s_t, 16);
+    const bytes = typeof serial === "string" ? decodeBase64ToBytes(serial) : serial;
+    const t = bytes[0];
     const tbrem = (t >>> 1) & 1;
     const lrrem = t & 1;
     return {
         TopBottom: {
             Type: (t >>> 4) & 0x3,
-            Value: htoi(s_tbv, tbrem, basepx),
-            Ratio: htoi(s_tbr, false),
-            Length: htoi(s_tbl, false)
+            Value: ptoi(bytes.slice(1, 4), tbrem, basepx),
+            Ratio: ptoi(bytes.slice(4, 7), false),
+            Length: ptoi(bytes.slice(7, 10), false)
         },
         LeftRight: {
             Type: (t >>> 2) & 0x3,
-            Value: htoi(s_lrv, lrrem, basepx),
-            Raito: htoi(s_lrr, false),
-            Length: htoi(s_lrl, false)
+            Value: ptoi(bytes.slice(10, 13), lrrem, basepx),
+            Raito: ptoi(bytes.slice(13, 16), false),
+            Length: ptoi(bytes.slice(16, 19), false)
         }
     };
+};
+
+const serializeWindow = (win, baseWindowIds, basepx) => {
+    const bytes = [];
+    const el = win.element;
+    const style = el.style;
+
+    bytes.push((el.matches(".maximized-xAxis") << 1 | el.matches(".maximized-yAxis")));
+    bytes.push(...itop(Rem.fromString(style.top), true, basepx));
+    bytes.push(...itop(Rem.fromString(style.left), true, basepx));
+    bytes.push(...itop(Rem.fromString(style.width), true, basepx));
+    bytes.push(...itop(Rem.fromString(style.height), true, basepx));
+    bytes.push(...serializeAnchor(win.anchor, basepx, true));
+
+    // connected to
+    const ckeys = Object.keys(win.connectedTo);
+    bytes.push(ckeys.length);
+    for(const id1 of ckeys) {
+        bytes.push(baseWindowIds.indexOf(id1));
+    }
+
+    return encodeItemsToBase64(bytes);
+};
+
+const deserializeWindow = (serial, baseWindowIds, basepx) => {
+    const bytes = typeof serial === "string" ? decodeBase64ToBytes(serial) : serial;
+    const info = {};
+
+    info.xMaximized = (bytes[0] >> 1) & 1 === 1;
+    info.yMaximized = bytes[0] & 1 === 1;
+    info.top = ptoi(bytes.slice(1, 4), true, basepx);
+    info.left = ptoi(bytes.slice(4, 7), true, basepx);
+    info.width = ptoi(bytes.slice(7, 10), true, basepx);
+    info.height = ptoi(bytes.slice(10, 13), true, basepx);
+    info.anchor = deserializeAnchor(bytes.slice(13, 13+anchorSerialLength), basepx);
+
+    let base = 13+anchorSerialLength;
+    info.connectedTo = {};
+    const clength = bytes[base];
+    for(let i = 0; i < clength; i++) {
+        const idx = bytes[base+1+i];
+        info.connectedTo[baseWindowIds[idx]] = null;
+    }
+
+    return info;
 };
 
 const getActiveTwitchChannels = () => {
@@ -2635,33 +2678,167 @@ const getActiveTwitchChannels = () => {
     return Object.keys(map).sort();
 };
 
-const getWindowsFromTail = () => {
+const getWindowIdsFromTail = () => {
     const ary = [];
     let n = Window.windows.head;
     while(n !== null) {
-        ary.push(n.value);
+        ary.push(n.value.id);
         n = n.prev;
     }
     return ary.reverse();
 };
 
-const serializeTwitch = () => {
-    const windows = getWindowsFromTail();
-    const channels = getActiveTwitchChannels();
-    let serial = "";
-    let i = 0;
+const updateT3DQuery = () => {
+    const baseWindowIds = getWindowIdsFromTail();
+    const baseChannels = getActiveTwitchChannels();
+    const basepx = Rem.fontSize;
 
-    for(const each of Object.values(twitchComponents)) {
-        if(i > 0) serial += "+";
+    let s, w, ca, t;
+    // s
+    s = baseChannels.join(" ");
 
-        serial += btoh(channels.indexOf(each.channel));
-        serial += each.chat ? "T" : "F";
-        if(!each.chat) {
-            
+    // w
+    const wary = [];
+    wary.push(encodeItemsToBase64([basepx]));
+    for(const id of baseWindowIds) {
+        wary.push(serializeWindow(Window.windows.get(id), baseWindowIds, basepx));
+    }
+    w = wary.join(" ");
+
+    // ca connections anchors
+    const caary = [];
+    {
+        let visited = {};
+        for(const id0 of baseWindowIds) {
+            if(id0 in visited) continue;
+            visited[id0] = null;
+
+            const win0 = Window.windows.get(id0);
+            const connections = win0.connections();
+            visited = {...visited, ...connections};
+
+            caary.push(encodeItemsToBase64([
+                baseWindowIds.indexOf(id0),
+                ...serializeAnchor(win0.connectionsAnchor, basepx, true)
+            ]));
         }
-        i++;
+    }
+    ca = caary.join(" ");
+
+    // t
+    const tary = [];
+    for(const id of Object.keys(twitchComponents)) {
+        const each = twitchComponents[id];
+        const items = [];
+        items.push(baseWindowIds.indexOf(id));
+        items.push(baseChannels.indexOf(each.channel));
+        items.push(each.chat ? 1 : 0);
+        if(!each.chat) {
+            const options = each.options;
+            items.push(Math.round(options.volume * 100));
+            items.push(options.quality.length);
+            items.push(options.quality);
+            items.push(Math.round(options.maximizedVolume * 100));
+            items.push(options.maximizedQuality.length);
+            items.push(options.maximizedQuality);
+        }
+        tary.push(encodeItemsToBase64(items));
+    }
+    t = tary.join(" ");
+
+    s = s.replaceAll(" ", "+");
+    w = w.replaceAll(" ", "+");
+    ca = ca.replaceAll(" ", "+");
+    t = t.replaceAll(" ", "+");
+
+    history.pushState(null, document.title, `?s=${s}&w=${w}&ca=${ca}&t=${t}`);
+};
+
+const applyT3DQuery = () => {
+    const params = Object.fromEntries((new URLSearchParams(window.location.search)).entries());
+
+    const wary = params.w.split(" ");
+    const caary = params.w.split(" ");
+    const tary = params.t.split(" ");
+
+    const basepx = decodeBase64ToBytes(wary[0])[0];
+    const baseWindowIds = [...Array(wary.length - 1).keys()].map(v => `window-${v}`);
+    const baseChannels = params.s.split(" ");
+
+    // w
+    const windowInfoMap = {};
+    for(let i = 1; i < wary.length; i++) {
+        const id = baseWindowIds[i-1];
+        const wserial = wary[i];
+        const info = deserializeWindow(wserial, baseWindowIds, basepx);
+        windowInfoMap[id] = info;
     }
 
+    // ca
+    {
+        const cavals = [];
+        for(const ca of caary) {
+            const bytes = decodeBase64ToBytes(ca);
+
+            cavals.push({
+                id: baseWindowIds[bytes[0]],
+                anchor: deserializeAnchor(bytes.slice(1, bytes.length), basepx)
+            });
+        }
+        let visited = {};
+        const visit = (id0, connections) => {
+            if(id0 in connections) return;
+            connections[id0] = null;
+            const info0 = windowInfoMap[id0];
+            for(const id1 of Object.keys(info0.connectedTo)) {
+                visit(id1, connections);
+            }
+            return connections;
+        };
+        for(const id0 of baseWindowIds) {
+            if(id0 in visited) continue;
+            const connections = visit(id0, {});
+            visited = {...visited, ...connections};
+
+            const cids = Object.keys(connections);
+            let canchor = null;
+            for(const each of cavals) {
+                if(cids.indexOf(each.id) !== -1) {
+                    for(const id1 of cids) {
+                        windowInfoMap[id1].connectionsAnchor = each.anchor;
+                    }
+                }
+            }
+        }
+    }
+
+    // t
+    const tcomps = {};
+    for(const t of tary) {
+        const bytes = decodeBase64ToBytes(t);
+        const id = baseWindowIds[bytes[0]];
+        const channel = baseChannels[bytes[1]];
+        const chat = bytes[2] === 1;
+        tcomps[id] = {
+            channel,
+            chat
+        };
+        if(!chat) {
+            let i = 3;
+            const read = n => {
+                let p = bytes.slice(i, i+n);
+                i += n;
+                return p;
+            };
+            tcomps[id].options = {
+                volume: read(1)[0] / 100,
+                quality: read(read(1)[0]).map(v => String.fromCharCode(v)).join(""),
+                maximizedVolume: read(1)[0] / 100,
+                maximizedQuality: read(read(1)[0]).map(v => String.fromCharCode(v)).join("")
+            };
+        }
+    }
+    console.log(tcomps);
 };
 
 /*
