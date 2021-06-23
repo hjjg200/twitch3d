@@ -1312,9 +1312,6 @@ class Window {
         this.connectionsAnchor = overrides.connectionsAnchor || this.anchor;
 
         //
-        this.addEventListener("change", () => {
-            Window.storeSerialization();
-        });
         this.dispatchEvent(new Event("change"));
 
     }
@@ -1378,6 +1375,7 @@ class Window {
         Window._resetZIndexes();
         //
         this.element.classList.add("focused");
+        this.dispatchEvent(new Event("change"));
     }
     blur() {
         this.element.classList.remove("focused");
@@ -1387,6 +1385,7 @@ class Window {
         Window.windows.remove(this.id);
         Window.windows.shove(this.id, this);
         Window._resetZIndexes();
+        this.dispatchEvent(new Event("change"));
     }
     static _resetZIndexes() {
         let gap = 10;
@@ -1938,8 +1937,6 @@ window.addEventListener("resize", () => {
                 }
             }
         }
-
-        Window.storeSerialization();
     }, 50);
 });
 
@@ -2133,6 +2130,9 @@ const closeModal = (modal) => {
         if(val.indexOf("twitch.tv/") !== -1) {
             streamer.value = val.split("twitch.tv/").reverse()[0].split(/[?/]/g)[0];
         }
+    });
+    modalAddStream.addEventListener("modalclose", ev => {
+        storeTwitchSerialization();
     });
     modalAddStream.addEventListener("modalopen", (ev) => {
         [top, left] = [
@@ -2372,7 +2372,6 @@ const interpretTwitchComponents = (serialization) => {
         }
         addTwitchComponent(win, each.channel, each.chat, each.options);
     }
-    storeTwitchSerialization();
 };
 const addTwitchComponent = (win, channel, chat, options) => {
     win.setTitle(`${channel}`);
@@ -2451,7 +2450,6 @@ const addTwitchComponent = (win, channel, chat, options) => {
         chat,
         options
     };
-    storeTwitchSerialization();
 };
 
 /*
@@ -2489,6 +2487,13 @@ const addTwitchComponent = (win, channel, chat, options) => {
     if(t3dWindows !== null) Window.interpretSerialization(t3dWindows);
     const t3dTwitch = localStorage.getItem("t3d-twitch");
     if(t3dTwitch !== null) interpretTwitchComponents(t3dTwitch);
+
+    //
+    for(const win of Window.windows.values()) {
+        win.addEventListener("change", () => {
+            Window.storeSerialization();
+        });
+    }
 
     // Fire resize event for repositioning
     window.dispatchEvent(new Event('resize'));
