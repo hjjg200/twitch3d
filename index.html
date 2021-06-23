@@ -2385,8 +2385,9 @@ const addTwitchComponent = (win, channel, chat, options) => {
             parent: [window.location.hostname]
         });
         player.setOptions = () => {
-            player.setVolume(win.isMaximized(true) ? options.maximizedVolume : options.volume);
-            player.setQuality(win.isMaximized(true) ? options.maximizedQuality : options.quality);
+            const opts = twitchComponents[win.id].options;
+            player.setVolume(win.isMaximized(true) ? opts.maximizedVolume : opts.volume);
+            player.setQuality(win.isMaximized(true) ? opts.maximizedQuality : opts.quality);
         };
         twitchPlayers[win.id] = player;
         player.addEventListener(Twitch.Player.ONLINE, () => {
