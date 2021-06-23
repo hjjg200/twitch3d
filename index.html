@@ -2320,10 +2320,12 @@ const disableIframes = () => {
 const enableIframe = (win) => {
     disableIframes();
 
-    const style = win.element.style;
-    const width = Rem.fromString(style.width);
-    btnDisableIframes.style.top = style.top;
-    btnDisableIframes.style.left = Rem.toString(Rem.fromString(style.left) + width/2);
+    const [ww, wh] = windowDimensions();
+    const maximized = win.isMaximized(true);
+    const rect = win.rect();
+    const width = maximized ? ww : rect.width;
+    btnDisableIframes.style.top = Rem.toString(maximized ? 0 : rect.top);
+    btnDisableIframes.style.left = Rem.toString((maximized ? 0 : rect.left) + width / 2);
     btnDisableIframes.classList[width < 27 ? "add" : "remove"]("small");
 
     document.body.classList.add("iframe-enabled");
