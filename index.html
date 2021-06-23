@@ -142,7 +142,7 @@ body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis).twitch-offline {
     opacity: 0;
 }
 
-body.window-in-move {
+body.window-in-move * {
     user-select: none;
     -webkit-user-select: none;
 }
@@ -348,17 +348,14 @@ input[type='range']::-webkit-slider-thumb {
 
 @keyframes show-disable-iframe-button {
     from {
-        top: -1rem; opacity: 0.45;
+        transform: translate(-50%, -1rem); opacity: 0.45;
     }
     to {
-        top: 1rem; opacity: 1;
+        transform: translate(-50%, 1rem); opacity: 1;
     }
 }
 #btn-disable-iframes {
     position: absolute;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
     background-color: rgba(55, 55, 55, 0.9);
     box-shadow: 0 .2rem .4rem rgba(0, 0, 0, 0.2);
     color: white;
@@ -376,7 +373,10 @@ body:not(.iframe-enabled) #btn-disable-iframes {
     display: none;
 }
 body.iframe-enabled #btn-disable-iframes {
-    animation: show-disable-iframe-button cubic-bezier(0.22, 1, 0.36, 1) .4s 1;
+    animation: show-disable-iframe-button cubic-bezier(0.22, 1, 0.36, 1) .4s 1 forwards;
+}
+#btn-disable-iframes.small span {
+    display: none;
 }
 #btn-disable-iframes i {
     background-image: url(svg/close.svg);
@@ -875,7 +875,7 @@ const locales = {
 };
 if(!(lang in locales)) lang = "en";
 document.body.classList.add(`lang-${lang}`);
-for(const key in locales[lang]) {
+for(const key in locales[lang]) { 
     if(key.indexOf("%") === 0) continue;
     for(const el of document.querySelectorAll(key).values()) {
         el.innerHTML = locales[lang][key];
@@ -1933,10 +1933,7 @@ window.addEventListener("resize", () => {
                 }
             }
         }
-
-        //Window.storeSerialization();
-        updateT3DQuery();
-    }, 50);
+    }, 100);
 });
 
 const _getMatchingParent = (element, parent, inclusive) => {
@@ -2070,16 +2067,24 @@ btnAddStream.addEventListener("mouseup", (ev) => {
     openModal(modalAddStream);
 });
 btnFullscreen.addEventListener("mouseup", (ev) => {
-    document.body.requestFullscreen();
+    const func = document.body.webkitRequestFullscreen
+        || document.body.requestFullscreen;
+    func.bind(document.body)();
 });
 btnExitFullscreen.addEventListener("mouseup", (ev) => {
-    document.exitFullscreen();
+    const func = document.webkitExitFullscreen
+        || document.exitFullscreen;
+    func.bind(document)();
 });
 btnGitHub.addEventListener("mouseup", (ev) => {
     window.open("https://github.com/hjjg200/twitch3d/issues", "_blank");
 });
 document.addEventListener("fullscreenchange", (ev) => {
     document.body.classList[document.fullscreenElement === null ? "remove" : "add"]("fullscreen");
+});
+document.addEventListener("webkitfullscreenchange", (ev) => {
+    document.body.classList[document.webkitFullscreenElement === null ? "remove" : "add"]("fullscreen");
+    window.dispatchEvent(new Event('resize'));
 });
 const openModal = (modal) => {
     if(modal.matches(".modal") === false) return;
@@ -2317,6 +2322,12 @@ const disableIframes = () => {
 
 const enableIframe = (win) => {
     disableIframes();
+
+    const style = win.element.style;
+    const width = Rem.fromString(style.width);
+    btnDisableIframes.style.top = style.top;
+    btnDisableIframes.style.left = Rem.toString(Rem.fromString(style.left) + width/2);
+    btnDisableIframes.classList[width < 27 ? "add" : "remove"]("small");
 
     document.body.classList.add("iframe-enabled");
 

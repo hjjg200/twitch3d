@@ -16,6 +16,7 @@ Watch multiple streams and move or scale them as you please.
 
 - Embedded Twitch players tend to show some purple screen due to Twitch's embedding policies. https://discuss.dev.twitch.tv/t/getting-a-message-on-my-embeds-that-goes-away-after-a-while/29592
 - Autoplayed players often start muted in Chromes. https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
+- Safari's `webkitExitFullscreen` does not work properly, this issue is being worked on
 
 ## Features
 
