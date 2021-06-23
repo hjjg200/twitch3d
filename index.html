@@ -1313,6 +1313,7 @@ class Window {
 
         // Store info
         this.addEventListener("change", () => {
+            Window.evaluateConnectionsAnchor();
             Window.storeSerialization();
         });
 
@@ -1469,7 +1470,7 @@ class Window {
         visit(this);
         return visited;
     }
-
+    
     static AnchorTypes = Object.freeze({
         // Order of preference
         BOTH_END: 0,
@@ -1647,19 +1648,6 @@ class Window {
             const rect1 = win.rect();
             win.anchor = Window.anchorOf(rect1);
 
-            {// Re-evaulate connections anchor
-                let visited = {};
-                for(const win1 of this.windows.values()) {
-                    if(win1.id in visited) continue;
-                    const connections = win1.connections();
-                    visited = {...visited, ...connections};
-                    const rect1 = this.connectionsRect(connections);
-                    const anchor1 = this.anchorOf(rect1);
-                    for(const each of Object.values(connections)) {
-                        each.connectionsAnchor = anchor1;
-                    }
-                }
-            }
             //
             Window.hideMaximizedRepresentation();
             Window.hideConnectionsIndicator();
@@ -1800,6 +1788,19 @@ class Window {
                 Window.hideConnectionsIndicator();
             }
         }).bind(this), 16);
+    }
+    static evaluateConnectionsAnchor() {
+        let visited = {};
+        for(const win1 of this.windows.values()) {
+            if(win1.id in visited) continue;
+            const connections = win1.connections();
+            visited = {...visited, ...connections};
+            const rect1 = this.connectionsRect(connections);
+            const anchor1 = this.anchorOf(rect1);
+            for(const each of Object.values(connections)) {
+                each.connectionsAnchor = anchor1;
+            }
+        }
     }
     static showConnectionsIndicator(connections) {
         if(Object.keys(connections).length === 1) return;
