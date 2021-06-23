@@ -2290,9 +2290,9 @@ const disableIframes = () => {
         const win = iframeEnabledWindow;
         const id = win.id;
         const player = twitchPlayers[id];
-        const maximized = win.isMaximized(true);
-        const options = twitchComponents[id].options;
-        if(player.online === true) {
+        if(player !== undefined && player.online === true) {
+            const maximized = win.isMaximized(true);
+            const options = twitchComponents[id].options;
             if(maximized) {
                 options.maximizedVolume = player.getVolume();
                 options.maximizedQuality = player.getQuality();
