@@ -1311,6 +1311,11 @@ class Window {
         this.connectedTo = overrides.connectedTo || {};
         this.connectionsAnchor = overrides.connectionsAnchor || this.anchor;
 
+        // Store info
+        this.addEventListener("change", () => {
+            Window.storeSerialization();
+        });
+
     }
     get id() {
         return this.element.id;
@@ -2485,13 +2490,6 @@ const addTwitchComponent = (win, channel, chat, options) => {
     if(t3dWindows !== null) Window.interpretSerialization(t3dWindows);
     const t3dTwitch = localStorage.getItem("t3d-twitch");
     if(t3dTwitch !== null) interpretTwitchComponents(t3dTwitch);
-
-    //
-    for(const win of Window.windows.values()) {
-        win.addEventListener("change", () => {
-            Window.storeSerialization();
-        });
-    }
 
     // Fire resize event for repositioning
     window.dispatchEvent(new Event('resize'));
