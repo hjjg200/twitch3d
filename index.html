@@ -1311,9 +1311,6 @@ class Window {
         this.connectedTo = overrides.connectedTo || {};
         this.connectionsAnchor = overrides.connectionsAnchor || this.anchor;
 
-        //
-        this.dispatchEvent(new Event("change"));
-
     }
     get id() {
         return this.element.id;
