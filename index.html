@@ -348,17 +348,14 @@ input[type='range']::-webkit-slider-thumb {
 
 @keyframes show-disable-iframe-button {
     from {
-        top: -1rem; opacity: 0.45;
+        transform: translate(-50%, -1rem); opacity: 0.45;
     }
     to {
-        top: 1rem; opacity: 1;
+        transform: translate(-50%, 1rem); opacity: 1;
     }
 }
 #btn-disable-iframes {
     position: absolute;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
     background-color: rgba(55, 55, 55, 0.9);
     box-shadow: 0 .2rem .4rem rgba(0, 0, 0, 0.2);
     color: white;
@@ -376,7 +373,10 @@ body:not(.iframe-enabled) #btn-disable-iframes {
     display: none;
 }
 body.iframe-enabled #btn-disable-iframes {
-    animation: show-disable-iframe-button cubic-bezier(0.22, 1, 0.36, 1) .4s 1;
+    animation: show-disable-iframe-button cubic-bezier(0.22, 1, 0.36, 1) .4s 1 forwards;
+}
+#btn-disable-iframes.small span {
+    display: none;
 }
 #btn-disable-iframes i {
     background-image: url(svg/close.svg);
@@ -2316,6 +2316,12 @@ const disableIframes = () => {
 
 const enableIframe = (win) => {
     disableIframes();
+
+    const style = win.element.style;
+    const width = Rem.fromString(style.width);
+    btnDisableIframes.style.top = style.top;
+    btnDisableIframes.style.left = Rem.toString(Rem.fromString(style.left) + width/2);
+    btnDisableIframes.classList[width < 27 ? "add" : "remove"]("small");
 
     document.body.classList.add("iframe-enabled");
 
