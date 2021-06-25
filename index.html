@@ -2062,6 +2062,9 @@ btnWinOpenChat.addEventListener("mouseup", (ev) => {
         height: 30
     });
     addTwitchComponent(chatWin, twitchComponents[ctxMenuTarget.id].channel, true);
+
+    Window.storeSerialization();
+    storeTwitchSerialization();
 });
 btnWinSendToBack.addEventListener("mouseup", (ev) => {
     ctxMenuTarget.sendToBack();
