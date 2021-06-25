@@ -50,7 +50,8 @@ Watch multiple streams and move or scale them as you please.
 - [x] Make measure for: streams don't support Source quality when it just got online
 - [x] Better `#introduction`
 - [ ] Fix bug: sometimes streams don't start when it got online
+- [ ] Import font css dynamically depending on language
 - [ ] Layout put as query string (compressed json)
 - [ ] Add opacity to window options
-- [ ] Discord for communication
-- [ ] Firefox, Edge, and Safari support
+- [ ] Safari support
+    - `webkitEnterFullscreen`
