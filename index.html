@@ -138,9 +138,6 @@ iframe {
 body.still-cursor main {
     cursor: none !important;
 }
-body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis).twitch-offline {
-    opacity: 0;
-}
 
 body.window-in-move {
     user-select: none;
@@ -448,6 +445,9 @@ body.iframe-enabled #btn-disable-iframes {
 body:not(.still-cursor) .window.focused {
     box-shadow: 0 .2rem 1rem var(--color-shadow);
 }
+body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enabled).twitch-offline {
+    opacity: 0;
+}
 .window.twitch-offline:not(.maximized-xAxis.maximized-yAxis):not(:hover) {
     opacity: 0.3;
 }
@@ -486,7 +486,7 @@ body:not(.still-cursor) .window.focused {
     opacity: 1;
     transition: opacity cubic-bezier(0.33, 1, 0.68, 1) .3s;
 }
-.window:not(.in-move):not(.in-resize):not(.iframe-enabled) .window-title-bar:not(:hover) {
+.window:not(.in-move):not(.in-resize) .window-title-bar:not(:hover) {
     opacity: 0;
 }
 .window-title-bar-relative,
