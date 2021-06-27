@@ -359,7 +359,7 @@ input[type='range']::-webkit-slider-thumb {
     font-size: .875rem;
     font-weight: bold;
     padding: .75rem 1rem;
-    border-radius: 1rem;
+    border-radius: 2rem;
     z-index: 2001;
     display: flex;
     flex-wrap: nowrap;
@@ -371,6 +371,9 @@ body:not(.iframe-enabled) #btn-disable-iframes {
 }
 body.iframe-enabled #btn-disable-iframes {
     animation: show-disable-iframe-button cubic-bezier(0.22, 1, 0.36, 1) .4s 1 forwards;
+}
+#btn-disable-iframes.small {
+    padding: .75rem;
 }
 #btn-disable-iframes.small span {
     display: none;
