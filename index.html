@@ -1313,7 +1313,6 @@ class Window {
 
         // Store info
         this.addEventListener("change", () => {
-            Window.evaluateConnectionsAnchor();
             Window.storeSerialization();
         });
 
@@ -1335,6 +1334,8 @@ class Window {
 
         Window.windows.remove(this.id);
         this.element.parentNode.removeChild(this.element);
+        
+        Window.evaluateConnectionsAnchor();
 
         this.dispatchEvent(new Event("change"));
     }
@@ -1644,14 +1645,21 @@ class Window {
                 clearInterval(this._resizeHandler);
                 this._resizeHandler = null;
             }
-            // Anchor
-            const rect1 = win.rect();
-            win.anchor = Window.anchorOf(rect1);
 
             //
             Window.hideMaximizedRepresentation();
             Window.hideConnectionsIndicator();
-            win.dispatchEvent(new Event("change"));
+            
+            if(changed === true) {
+                // Anchor
+                const rect1 = win.rect();
+                win.anchor = Window.anchorOf(rect1);
+
+                Window.evaluateConnectionsAnchor();
+
+                win.dispatchEvent(new Event("change"));
+            }
+
         }).bind(this);
         this._resizeHandler = setInterval((() => {
             const dx = mouseX - mouseX0;
