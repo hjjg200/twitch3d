@@ -1107,6 +1107,11 @@ class DLL {
         if(!(key in this._map)) return null;
         return this._map[key].value;
     }
+    swap(key0, key1) {
+        const node0 = this._map[key0];
+        const node1 = this._map[key1];
+        [node0.value, node1.value] = [node1.value, node0.value];
+    }
     put(key, value) {
         const oldHead = this.head;
         this.head = {
@@ -1970,6 +1975,36 @@ const getParentInclusive = (element, parent) => _getMatchingParent(element, pare
 const isContainedIn = (element, parent) => _getMatchingParent(element, parent, true) !== null;
 const isContainedInSelector = (element, selector) => _getMatchingParent(element, selector, true) !== null;
 
+const swapWindows = (win0, win1) => {
+    // style: top, left, width, height
+    // swap in linked list and reset z indexes
+    // swap anchor, connections anchor
+    // swap connected to
+    // - visit every window that is connected to and change the id
+    
+    const [style0, style1] = [win0.element.style, win1.element.style];
+    [style0.top, style1.top] = [style1.top, style0.top];
+    [style0.left, style1.left] = [style1.left, style0.left];
+    [style0.width, style1.width] = [style1.width, style0.width];
+    [style0.height, style1.height] = [style1.height, style0.height];
+    
+    Window.windows.swap(win0.id, win1.id);
+    Window._resetZIndexes();
+    
+    [win0.anchor, win1.anchor] = [win1.anchor, win0.anchor];
+    [win0.connectionsAnchor, win1.connectionsAnchor] = [win1.connectionsAnchor, win0.connectionsAnchor];
+    
+    const connectedToHelper = (lhs, rhs) => {
+        for(const id of Object.keys(lhs.connectedTo)) {
+            const target = Window.windows.get(id);
+            delete target.connectedTo[lhs.id];
+            target.connectedTo[rhs.id] = null;
+        }
+    };
+    connectedToHelper(win0, win1);
+    connectedToHelper(win1, win0);
+    [win0.connectedTo, win1.connectedTo] = [win1.connectedTo, win0.connectedTo];
+};
 // Menu
 const ctxMenu = document.getElementById("context-menu");
 const ctxItems = document.getElementById("context-menu-items");
