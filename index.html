@@ -636,6 +636,18 @@ body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enab
     opacity: 1 !important;
 }
 
+.window-swap-representation {
+    background: rgba(255, 255, 255, 0.5);
+    position: absolute;
+    z-index: 1001;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    transition-duration: .65s;
+    transition-property: opacity, width, height;
+    width: 16rem;
+    height: 9rem;
+    pointer-events: none;
+}
+
 /* Dropdown */
 .dropdown {
     position: relative;
@@ -1110,8 +1122,9 @@ class DLL {
     swap(key0, key1) {
         const node0 = this._map[key0];
         const node1 = this._map[key1];
-        [node0.next, node1.next] = [node1.next, node0.next];
-        [node0.prev, node1.prev] = [node1.prev, node0.prev];
+        [node0.value, node1.value] = [node1.value, node0.value];
+        this._map[key0] = node1;
+        this._map[key1] = node0;
     }
     put(key, value) {
         const oldHead = this.head;
@@ -1203,12 +1216,27 @@ class Window {
         const contentOverlay = createElement("div", "window-content-overlay");
 
         let ctxMenuWasNotOpen = true;
-        contentOverlay.addEventListener("mousedown", (ev) => {
+        let swapStarted = false;
+        contentOverlay.addEventListener("mousedown", ((ev) => {
             ctxMenuWasNotOpen = ctxMenu.style.display === "";
+            swapStarted = false;
+            Window.startDragToSwap(this);
+        }).bind(this));
+        this.addEventListener("start-swap", (ev) => {
+            swapStarted = true;
         });
+        let swapAttemptable = true;
+        contentOverlay.addEventListener("mouseenter", ((ev) => {
+            if(swapAttemptable === false) return;
+            swapAttemptable = false;
+            Window.attemptDragToSwap(this);
+            swapAttemptable = true;
+        }).bind(this));
         contentOverlay.addEventListener("click", ((ev) => {
             this.focus();
-            if(ev.button === 0 && ctxMenuWasNotOpen) {
+            if(ev.button === 0
+                && ctxMenuWasNotOpen
+                && swapStarted === false) {
                 enableIframe(this);
             }
         }).bind(this));
@@ -1237,10 +1265,14 @@ class Window {
             if(ev.button === 0) this.close();
         }).bind(this));
         btnMaximize.addEventListener("click", ((ev) => {
-            if(ev.button === 0) this.maximize(true, true);
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, true);
+            }
         }).bind(this));
         title.addEventListener("dblclick", ((ev) => {
-            if(ev.button === 0) this.maximize(true, true);
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, true);
+            }
         }).bind(this));
 
         controls.appendChild(btnMaximize);
@@ -1263,25 +1295,33 @@ class Window {
             if(ev.button === 0) Window._startResize(this, 1, 0);
         }).bind(this));
         cornerTop.addEventListener("dblclick", ((ev) => {
-            if(ev.button === 0) this.maximize(false, true);
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(false, true);
+            }
         }).bind(this));
         cornerRight.addEventListener("mousedown", ((ev) => {
             if(ev.button === 0) Window._startResize(this, 0, -1);
         }).bind(this));
         cornerRight.addEventListener("dblclick", ((ev) => {
-            if(ev.button === 0) this.maximize(true, false);
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, false);
+            }
         }).bind(this));
         cornerBottom.addEventListener("mousedown", ((ev) => {
             if(ev.button === 0) Window._startResize(this, -1, 0);
         }).bind(this));
         cornerBottom.addEventListener("dblclick", ((ev) => {
-            if(ev.button === 0) this.maximize(false, true);
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(false, true);
+            }
         }).bind(this));
         cornerLeft.addEventListener("mousedown", ((ev) => {
             if(ev.button === 0) Window._startResize(this, 0, 1);
         }).bind(this));
         cornerLeft.addEventListener("dblclick", ((ev) => {
-            if(ev.button === 0) this.maximize(true, false);
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, false);
+            }
         }).bind(this));
         // Corners
         cornerTopLeft.addEventListener("mousedown", ((ev) => {
@@ -1327,7 +1367,7 @@ class Window {
             changeDebouncer = setTimeout(() => {
                 clearTimeout(changeDebouncer);
                 Window.storeSerialization();
-            }, 100);
+            }, 1000);
         });
 
     }
@@ -1355,10 +1395,6 @@ class Window {
     }
     static fullyMaximizedWindow = null;
     maximize(xAxis/*: boolean*/, yAxis/*: boolean*/) {
-        if(this.isMaximized(false)) {
-            this.unmaximize();
-            return;
-        }
         if(xAxis && yAxis) {
             // Replace the maximized window
             if(Window.fullyMaximizedWindow !== null)
@@ -1366,8 +1402,8 @@ class Window {
             Window.fullyMaximizedWindow = this;
         }
         this.element.classList.add("maximized");
-        xAxis && this.element.classList.add("maximized-xAxis");
-        yAxis && this.element.classList.add("maximized-yAxis");
+        this.element.classList[xAxis ? "add" : "remove"]("maximized-xAxis");
+        this.element.classList[yAxis ? "add" : "remove"]("maximized-yAxis");
         this.dispatchEvent(new Event("change"));
         this.dispatchEvent(new Event("maximize"));
     }
@@ -1426,6 +1462,90 @@ class Window {
             headIndex -= gap;
         }
     }
+    static _stopDragToSwap = null;
+    static stopDragToSwap() {
+        if(this._stopDragToSwap !== null) {
+            this._stopDragToSwap();
+            this._stopDragToSwap = null;
+        }
+    }
+    static _draggedToSwap = null;
+    static _swapCandidate = null;
+    static beingSwapped = false;
+    static startDragToSwap(win) {
+        const threshold = 1; // rem
+        const x0 = mouseX;
+        const y0 = mouseY;
+        let active = false;
+        let ticker = null;
+        let representation = null;
+        let rStyle = null;
+
+        this._draggedToSwap = win;
+        this._swapCandidate = null;
+        this.beingSwapped = true;
+
+        ticker = setInterval((() => {
+            const x1 = mouseX;
+            const y1 = mouseY;
+            const active0 = active;
+            active = active || Rem.gte(((x1-x0)**2 + (y1-y0)**2)**0.5, threshold);
+            if(!active) return;
+
+            if(active0 === false) {
+                representation = createElement("div", "window-swap-representation");
+                const winRect = win.rect();
+                rStyle = representation.style;
+                rStyle.top = Rem.toString(winRect.top);
+                rStyle.left = Rem.toString(winRect.left);
+                rStyle.width = Rem.toString(winRect.width);
+                rStyle.height = Rem.toString(winRect.height);
+                if(win.isMaximized(true)) {
+                    const [ww, wh] = windowDimensions();
+                    rStyle.top = Rem.toString(0);
+                    rStyle.left = Rem.toString(0);
+                    rStyle.width = Rem.toString(ww);
+                    rStyle.height = Rem.toString(wh);
+                }
+                document.body.appendChild(representation);
+                setTimeout(() => {
+                    rStyle.width = "";
+                    rStyle.height = "";
+                }, 10);
+
+                win.dispatchEvent(new Event('start-swap'));
+            }
+            const computed = getComputedStyle(representation);
+            const [cw, ch] = [Rem.fromString(computed.width), Rem.fromString(computed.height)];
+            rStyle.top = Rem.toString(y1 - ch/2);
+            rStyle.left = Rem.toString(x1 - cw/2);
+        }).bind(this), 5);
+
+        this._stopDragToSwap = (() => {
+            if(representation !== null) {
+                representation.parentNode.removeChild(representation);
+            }
+            this._draggedToSwap = null;
+            this.beingSwapped = false;
+            clearTimeout(ticker);
+        }).bind(this);
+    }
+    static attemptDragToSwap(win0) {
+        if(this.beingSwapped === false) return;
+
+        const win1 = this._draggedToSwap;
+
+        if(win1 === win0) {
+            return;
+        }
+        const oldCandidate = this._swapCandidate;
+        this._swapCandidate = win0;
+        this.swap(win0, win1);
+        if(oldCandidate !== null) {
+            this.swap(win0, oldCandidate);
+        }
+
+    }
     static swap(win0, win1) {
         // style: top, left, width, height
         // swap in linked list and reset z indexes
@@ -1465,8 +1585,6 @@ class Window {
         {
             const axes0 = win0.maximizedAxes();
             const axes1 = win1.maximizedAxes();
-            win0.unmaximize();
-            win1.unmaximize();
             win0.maximize(...axes1);
             win1.maximize(...axes0);
         }
@@ -1482,6 +1600,7 @@ class Window {
     rect() {
         const [ww, wh] = windowDimensions();
         const fully = this.isMaximized(true);
+        const axes = this.maximizedAxes();
         const sty_actual = this.element.style;
         let [top, left, width, height] = [
             Rem.fromString(sty_actual.top),
@@ -1489,11 +1608,11 @@ class Window {
             Rem.fromString(sty_actual.width),
             Rem.fromString(sty_actual.height)
         ];
-        if(!fully && this.element.matches(".maximized-xAxis")) {
+        if(!fully && axes[0] === true) {
             left = 0;
             width = ww;
         }
-        if(!fully && this.element.matches(".maximized-yAxis")) {
+        if(!fully && axes[1] === true) {
             top = 0;
             height = wh;
         }
@@ -1938,6 +2057,7 @@ class Window {
     }
 }
 document.addEventListener("mouseup", () => {
+    Window.stopDragToSwap();
     Window.stopResize();
 });
 let windowResizeTimeout = null;
