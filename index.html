@@ -1227,6 +1227,9 @@ class Window {
         });
         let swapAttemptable = true;
         contentOverlay.addEventListener("mouseenter", ((ev) => {
+            Window.registerDragToSwap(this);
+        }).bind(this));
+        contentOverlay.addEventListener("mousemove", ((ev) => {
             if(swapAttemptable === false) return;
             swapAttemptable = false;
             Window.attemptDragToSwap(this);
@@ -1471,6 +1474,8 @@ class Window {
     }
     static _draggedToSwap = null;
     static _swapCandidate = null;
+    static _swapVisible = false;
+    static _swapTimer = null;
     static beingSwapped = false;
     static startDragToSwap(win) {
         const threshold = 1; // rem
@@ -1483,7 +1488,11 @@ class Window {
 
         this._draggedToSwap = win;
         this._swapCandidate = null;
+        this._swapVisible = false;
+        this._swapTimer = null;
         this.beingSwapped = true;
+
+        document.body.classList.add("window-in-move");
 
         ticker = setInterval((() => {
             const x1 = mouseX;
@@ -1522,6 +1531,14 @@ class Window {
         }).bind(this), 5);
 
         this._stopDragToSwap = (() => {
+            document.body.classList.remove("window-in-move");
+
+            // Check candidate
+            if(this._swapCandidate !== null && this._swapVisible === false) {
+                clearTimeout(this._swapTimer);
+                this.swap(this._swapCandidate, this._draggedToSwap);
+            }
+
             if(representation !== null) {
                 representation.parentNode.removeChild(representation);
             }
@@ -1530,21 +1547,44 @@ class Window {
             clearTimeout(ticker);
         }).bind(this);
     }
-    static attemptDragToSwap(win0) {
+    static registerDragToSwap(win0) {
         if(this.beingSwapped === false) return;
 
         const win1 = this._draggedToSwap;
 
         if(win1 === win0) {
+            if(this._swapVisible === false) {
+                this._swapCandidate = null;
+            }
             return;
         }
+
         const oldCandidate = this._swapCandidate;
-        this._swapCandidate = win0;
-        this.swap(win0, win1);
-        if(oldCandidate !== null) {
-            this.swap(win0, oldCandidate);
+        if(oldCandidate !== null && oldCandidate !== win0) {
+            this.swap(oldCandidate, win1);
         }
 
+        this._swapCandidate = win0;
+        
+    }
+    static attemptDragToSwap(win0) {
+        if(this.beingSwapped === false) return;
+
+        const win1 = this._draggedToSwap;
+
+        clearTimeout(this._swapTimer);
+
+        if(win1 === win0) {
+            if(this._swapVisible === true) {
+                this._swapVisible = false;
+                this.swap(win1, this._swapCandidate);
+            }
+        } else if(win0 === this._swapCandidate) {
+            this._swapTimer = setTimeout((() => {
+                this.swap(win1, win0);
+                this._swapVisible = true;
+            }).bind(this), 1000);
+        }
     }
     static swap(win0, win1) {
         // style: top, left, width, height
