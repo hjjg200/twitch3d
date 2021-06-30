@@ -2102,13 +2102,14 @@ class Window {
                 && !move)) {
 
                 // Snapping to nearby windows takes priority
+                // TODO connect to every window whose distance-to is 0
                 if(tok || hok) {
                     const [ts, td, town] = snapHelper(top1, tDests);
                     const [bs, bd, bown] = snapHelper(top1 + height1, bDests);
                     let d = 0;
                     // Top takes priority
                     if(bs && (move || tbWise === -1)) {d = bd; connectCandidate = bown;} // in-move or tbwise -1
-                    if(ts && (move || tbWise === 1)) {d = td; connectCandidate = town;}
+                    if(ts && (move || tbWise === 1)) {d = td; connectCandidate = town || connectCandidate;}
                     if(tok) top1 += d;
                     if(hok) height1 += tok ? -d : d;
                 }
@@ -2117,8 +2118,8 @@ class Window {
                     const [rs, rd, rown] = snapHelper(left1 + width1, rDests);
                     let d = 0;
                     // Left takes priority
-                    if(rs && (move || lrWise === -1)) {d = rd; connectCandidate = rown;}
-                    if(ls && (move || lrWise === 1)) {d = ld; connectCandidate = lown;}
+                    if(rs && (move || lrWise === -1)) {d = rd; connectCandidate = rown || connectCandidate;}
+                    if(ls && (move || lrWise === 1)) {d = ld; connectCandidate = lown || connectCandidate;}
                     if(lok) left1 += d;
                     if(wok) width1 += lok ? -d : d;
                 }
