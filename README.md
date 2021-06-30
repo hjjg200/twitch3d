@@ -21,6 +21,7 @@ Watch multiple streams and move or scale them as you please.
 
 - Grouping windows
 - Maximizing control of windows resembles that of Windows
+- Drag to swap windows
 - Make offline streams invisible
 - Store layout for later visits
 - Repositioning windows when the browser is resized
