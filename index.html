@@ -139,7 +139,8 @@ body.still-cursor main {
     cursor: none !important;
 }
 
-body.window-in-move {
+body.window-in-move,
+body.window-in-swap {
     user-select: none;
     -webkit-user-select: none;
 }
@@ -442,7 +443,8 @@ body.iframe-enabled #btn-disable-iframes {
     opacity: 1;
 }
 .window.in-move,
-.window.in-resize {
+.window.in-resize,
+body.window-in-swap .window {
     transition-property: box-shadow, opacity;
 }
 body:not(.still-cursor) .window.focused {
@@ -617,6 +619,11 @@ body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enab
     animation: cubic-bezier(0.22, 1, 0.36, 1) .4s 1 iframe-hint forwards;
     pointer-events: none;
 }
+.window.in-swap .window-content-overlay {
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
 
 #window-connections-indicator {
     display: none;
@@ -641,10 +648,11 @@ body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enab
     position: absolute;
     z-index: 1001;
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-    transition-duration: .65s;
-    transition-property: opacity, width, height;
+    transition-duration: .85s;
+    transition-property: opacity, transform;
     width: 16rem;
     height: 9rem;
+    transform: scale(1);
     pointer-events: none;
 }
 
@@ -1476,6 +1484,7 @@ class Window {
     static _swapCandidate = null;
     static _swapVisible = false;
     static _swapTimer = null;
+    static _swapRepresentation = null;
     static beingSwapped = false;
     static startDragToSwap(win) {
         const threshold = 1; // rem
@@ -1483,16 +1492,21 @@ class Window {
         const y0 = mouseY;
         let active = false;
         let ticker = null;
-        let representation = null;
+        let representation = createElement("div", "window-swap-representation");
         let rStyle = null;
 
         this._draggedToSwap = win;
         this._swapCandidate = null;
         this._swapVisible = false;
         this._swapTimer = null;
+        this._swapRepresentation = null;
         this.beingSwapped = true;
 
-        document.body.classList.add("window-in-move");
+        this._swapRepresentation = representation;
+        document.body.appendChild(representation);
+
+        win.element.classList.add("in-swap");
+        document.body.classList.add("window-in-swap");
 
         ticker = setInterval((() => {
             const x1 = mouseX;
@@ -1502,28 +1516,33 @@ class Window {
             if(!active) return;
 
             if(active0 === false) {
-                representation = createElement("div", "window-swap-representation");
                 const winRect = win.rect();
                 rStyle = representation.style;
+
+                const computed = getComputedStyle(representation);
+                const [cw, ch] = [Rem.fromString(computed.width), Rem.fromString(computed.height)];
+                let winw, winh;
+
                 rStyle.top = Rem.toString(winRect.top);
                 rStyle.left = Rem.toString(winRect.left);
-                rStyle.width = Rem.toString(winRect.width);
-                rStyle.height = Rem.toString(winRect.height);
+                winw = winRect.width;
+                winh = winRect.height;
                 if(win.isMaximized(true)) {
-                    const [ww, wh] = windowDimensions();
                     rStyle.top = Rem.toString(0);
                     rStyle.left = Rem.toString(0);
-                    rStyle.width = Rem.toString(ww);
-                    rStyle.height = Rem.toString(wh);
+                    [winw, winh] = windowDimensions();
                 }
-                document.body.appendChild(representation);
+                rStyle.transform = `scale(${winw/cw},${winh/ch})`;
+                rStyle.opacity = "0";
+
                 setTimeout(() => {
-                    rStyle.width = "";
-                    rStyle.height = "";
-                }, 10);
+                    rStyle.transform = "";
+                    rStyle.opacity = "";
+                }, 100);
 
                 win.dispatchEvent(new Event('start-swap'));
             }
+
             const computed = getComputedStyle(representation);
             const [cw, ch] = [Rem.fromString(computed.width), Rem.fromString(computed.height)];
             rStyle.top = Rem.toString(y1 - ch/2);
@@ -1531,7 +1550,10 @@ class Window {
         }).bind(this), 5);
 
         this._stopDragToSwap = (() => {
-            document.body.classList.remove("window-in-move");
+            this.beingSwapped = false;
+
+            win.element.classList.remove("in-swap");
+            document.body.classList.remove("window-in-swap");
 
             // Check candidate
             if(this._swapCandidate !== null && this._swapVisible === false) {
@@ -1543,7 +1565,6 @@ class Window {
                 representation.parentNode.removeChild(representation);
             }
             this._draggedToSwap = null;
-            this.beingSwapped = false;
             clearTimeout(ticker);
         }).bind(this);
     }
@@ -1551,6 +1572,8 @@ class Window {
         if(this.beingSwapped === false) return;
 
         const win1 = this._draggedToSwap;
+
+        clearTimeout(this._swapTimer);
 
         if(win1 === win0) {
             if(this._swapVisible === false) {
@@ -1574,16 +1597,36 @@ class Window {
 
         clearTimeout(this._swapTimer);
 
+        const representation = this._swapRepresentation;
+        const rStyle = representation.style;
+
         if(win1 === win0) {
             if(this._swapVisible === true) {
-                this._swapVisible = false;
                 this.swap(win1, this._swapCandidate);
+                this._swapVisible = false;
+                rStyle.transform = "";
+                rStyle.opacity = "";
             }
         } else if(win0 === this._swapCandidate) {
             this._swapTimer = setTimeout((() => {
+                if(win0 !== this._swapCandidate) return;
+                if(this._swapVisible === true) return;
+
+                const computed = getComputedStyle(representation);
+                const [cw, ch] = [Rem.fromString(computed.width), Rem.fromString(computed.height)];
+                const winRect = win0.rect();
+                let winw, winh;
+                winw = winRect.width;
+                winh = winRect.height;
+                if(win0.isMaximized(true)) {
+                    [winw, winh] = windowDimensions();
+                }
+                rStyle.transform = `scale(${winw/cw},${winh/ch})`;
+                rStyle.opacity = "0";
+
                 this.swap(win1, win0);
                 this._swapVisible = true;
-            }).bind(this), 1000);
+            }).bind(this), 500);
         }
     }
     static swap(win0, win1) {
