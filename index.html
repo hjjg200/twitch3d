@@ -1241,7 +1241,7 @@ class Window {
             swapStarted = false;
             Window.startDragToSwap(this);
         }).bind(this));
-        this.addEventListener("start-swap", (ev) => {
+        Window.addEventListener("start-swap", (ev) => {
             swapStarted = true;
         });
         let swapAttemptable = true;
@@ -1507,7 +1507,7 @@ class Window {
     static _swapTimer = null;
     static _swapRepresentation = null;
     static beingSwapped = false;
-    static startDragToSwap(win) {
+    static startDragToSwap(win, activeOverride) {
         const threshold = 1; // rem
         const x0 = mouseX;
         const y0 = mouseY;
@@ -1526,12 +1526,13 @@ class Window {
             const x1 = mouseX;
             const y1 = mouseY;
             const active0 = active;
-            active = active || Rem.gte(((x1-x0)**2 + (y1-y0)**2)**0.5, threshold);
+            active = activeOverride || active || Rem.gte(((x1-x0)**2 + (y1-y0)**2)**0.5, threshold);
             if(!active) return;
 
             if(active0 === false) {
                 this.beingSwapped = true;
 
+                Window.dispatchEvent(new Event("start-swap"));
                 win.element.classList.add("in-swap");
                 document.body.classList.add("window-in-swap");
 
@@ -1586,6 +1587,7 @@ class Window {
 
         this._stopDragToSwap = (() => {
             this.beingSwapped = false;
+            Window.dispatchEvent(new Event("stop-swap"));
             clearTimeout(this._swapTimer);
 
             if(canceled && this._swapVisible === true) {
@@ -2354,6 +2356,8 @@ const btnDisableIframes = document.getElementById("btn-disable-iframes");
 document.addEventListener("contextmenu", (ev) => {
     ev.preventDefault();
 
+    Window.stopDragToSwap();
+
     ctxMenu.style.display = "block";
 
     const winEl = getParentInclusive(ev.target, ".window");
@@ -2442,7 +2446,7 @@ btnWinOpenChat.addEventListener("mouseup", (ev) => {
 });
 btnWinSwapWith.addEventListener("mouseup", ev => {
     ev.stopPropagation();
-    Window.startDragToSwap(ctxMenuTarget);
+    Window.startDragToSwap(ctxMenuTarget, true);
     ctxMenu.style.display = "";
 });
 btnWinSendToBack.addEventListener("mouseup", (ev) => {
