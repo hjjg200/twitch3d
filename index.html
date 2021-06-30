@@ -1492,7 +1492,7 @@ class Window {
         const y0 = mouseY;
         let active = false;
         let ticker = null;
-        let representation = createElement("div", "window-swap-representation");
+        let representation = null;
         let rStyle = null;
 
         this._draggedToSwap = win;
@@ -1500,13 +1500,6 @@ class Window {
         this._swapVisible = false;
         this._swapTimer = null;
         this._swapRepresentation = null;
-        this.beingSwapped = true;
-
-        this._swapRepresentation = representation;
-        document.body.appendChild(representation);
-
-        win.element.classList.add("in-swap");
-        document.body.classList.add("window-in-swap");
 
         ticker = setInterval((() => {
             const x1 = mouseX;
@@ -1516,6 +1509,16 @@ class Window {
             if(!active) return;
 
             if(active0 === false) {
+                this.beingSwapped = true;
+
+                win.element.classList.add("in-swap");
+                document.body.classList.add("window-in-swap");
+
+                representation = createElement("div", "window-swap-representation");
+
+                this._swapRepresentation = representation;
+                document.body.appendChild(representation);
+                
                 const winRect = win.rect();
                 rStyle = representation.style;
 
