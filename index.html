@@ -1166,6 +1166,9 @@ class DLL {
 
 // Class Window
 class Window {
+    static _manager = createElement("div", "window-manager");
+    static addEventListener = this._manager.addEventListener.bind(this._manager);
+    static dispatchEvent = this._manager.dispatchEvent.bind(this._manager);
     static baseZIndex = 1;
     static windows = new DLL();
     static groups = [];
@@ -1381,6 +1384,11 @@ class Window {
             }, 1000);
         });
 
+        //
+        Window.dispatchEvent(new CustomEvent("new-window", {
+            detail: {target: this}
+        }))
+
     }
     get id() {
         return this.element.id;
@@ -1558,12 +1566,25 @@ class Window {
             win.element.classList.remove("in-swap");
             document.body.classList.remove("window-in-swap");
 
-            // Check candidate
+            // Check swap is visible
             if(this._swapCandidate !== null && this._swapVisible === false) {
                 clearTimeout(this._swapTimer);
-                this.swap(this._swapCandidate, this._draggedToSwap);
+                this._swap(this._swapCandidate, this._draggedToSwap);
+            }
+            if(this._swapCandidate !== null) {
+                // Swap performed
+                const win0 = win;
+                const win1 = this._swapCandidate;
+
+                win0.dispatchEvent(new Event("change"));
+                win1.dispatchEvent(new Event("change"));
+
+                win0.dispatchEvent(new CustomEvent("swap", {
+                    detail: {to: win1}
+                }));
             }
 
+            // Clean up
             if(representation !== null) {
                 representation.parentNode.removeChild(representation);
             }
@@ -1587,7 +1608,7 @@ class Window {
 
         const oldCandidate = this._swapCandidate;
         if(oldCandidate !== null && oldCandidate !== win0) {
-            this.swap(oldCandidate, win1);
+            this._swap(oldCandidate, win1);
         }
 
         this._swapCandidate = win0;
@@ -1605,7 +1626,7 @@ class Window {
 
         if(win1 === win0) {
             if(this._swapVisible === true) {
-                this.swap(win1, this._swapCandidate);
+                this._swap(win1, this._swapCandidate);
                 this._swapVisible = false;
                 rStyle.transform = "";
                 rStyle.opacity = "";
@@ -1627,12 +1648,12 @@ class Window {
                 rStyle.transform = `scale(${winw/cw},${winh/ch})`;
                 rStyle.opacity = "0";
 
-                this.swap(win1, win0);
+                this._swap(win1, win0);
                 this._swapVisible = true;
             }).bind(this), 500);
         }
     }
-    static swap(win0, win1) {
+    static _swap(win0, win1) {
         // style: top, left, width, height
         // swap in linked list and reset z indexes
         // swap anchor, connections anchor
@@ -1678,10 +1699,6 @@ class Window {
         // Focus
         if(win0.isFocused()) win1.focus();
         if(win1.isFocused()) win0.focus();
-
-        //
-        win0.dispatchEvent(new Event("change"));
-        win1.dispatchEvent(new Event("change"));
     }
     rect() {
         const [ww, wh] = windowDimensions();
@@ -2682,6 +2699,8 @@ const addTwitchComponent = (win, channel, chat, options) => {
             parent: [window.location.hostname]
         });
         player.setOptions = () => {
+            if(document.body.matches(".window-in-swap")) return;
+
             const opts = twitchComponents[win.id].options;
             player.setVolume(win.isMaximized(true) ? opts.maximizedVolume : opts.volume);
             player.setQuality(win.isMaximized(true) ? opts.maximizedQuality : opts.quality);
@@ -2782,6 +2801,26 @@ const addTwitchComponent = (win, channel, chat, options) => {
 }
 
 */
+
+Window.addEventListener("new-window", ev => {
+    const win = ev.detail.target;
+
+    win.addEventListener("swap", swapEv => {
+        const winTo = swapEv.detail.to;
+        const p0 = twitchPlayers[win.id] || null;
+        const p1 = twitchPlayers[winTo.id] || null;
+        if(p0 !== null && p1 !== null) {
+            [twitchComponents[win.id].options, twitchComponents[winTo.id].options] = [
+                twitchComponents[winTo.id].options,
+                twitchComponents[win.id].options
+            ];
+        }
+        if(p0 !== null) p0.setOptions();
+        if(p1 !== null) p1.setOptions();
+
+        storeTwitchSerialization();
+    });
+});
 
 {
     const t3dWindows = localStorage.getItem("t3d-windows");
