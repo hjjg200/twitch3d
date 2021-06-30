@@ -620,9 +620,12 @@ body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enab
     pointer-events: none;
 }
 .window.in-swap .window-content-overlay {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
+}
+.window.swap-hover .window-content-overlay {
+    box-shadow: 0 0 0 .125rem #FF3D00 inset;
 }
 
 #window-connections-indicator {
@@ -769,6 +772,9 @@ body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enab
                     </li>
                     <li class="window-specific player-specific">
                         <button id="btn-window-open-chat">Open Chat</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-swap-with">Swap with...</button>
                     </li>
                     <li class="window-specific">
                         <button id="btn-window-send-to-back">Send to Back</button>
@@ -1229,6 +1235,8 @@ class Window {
         let ctxMenuWasNotOpen = true;
         let swapStarted = false;
         contentOverlay.addEventListener("mousedown", ((ev) => {
+            if(document.body.matches(".window-in-swap")) return;
+
             ctxMenuWasNotOpen = ctxMenu.style.display === "";
             swapStarted = false;
             Window.startDragToSwap(this);
@@ -1238,15 +1246,20 @@ class Window {
         });
         let swapAttemptable = true;
         contentOverlay.addEventListener("mouseenter", ((ev) => {
-            Window.registerDragToSwap(this);
+            Window.registerDragToSwap(this, ev.buttons !== 0);
+        }).bind(this));
+        contentOverlay.addEventListener("mouseleave", ((ev) => {
+            Window.dismissDragToSwap(this);
         }).bind(this));
         contentOverlay.addEventListener("mousemove", ((ev) => {
             if(swapAttemptable === false) return;
             swapAttemptable = false;
-            Window.attemptDragToSwap(this);
+            Window.attemptDragToSwap(this, ev.buttons !== 0);
             swapAttemptable = true;
         }).bind(this));
         contentOverlay.addEventListener("click", ((ev) => {
+            if(document.body.matches(".window-in-swap")) return;
+
             this.focus();
             if(ev.button === 0
                 && ctxMenuWasNotOpen
@@ -1560,28 +1573,50 @@ class Window {
             rStyle.left = Rem.toString(x1 - cw/2);
         }).bind(this), 5);
 
+        //
+        let canceled = false;
+        const cancelListener = (ev => {
+            if(ev.key === "Escape") {
+                ev.preventDefault();
+                canceled = true;
+                this.stopDragToSwap();
+            }
+        }).bind(this);
+        document.body.addEventListener("keydown", cancelListener);
+
         this._stopDragToSwap = (() => {
             this.beingSwapped = false;
+            clearTimeout(this._swapTimer);
 
-            win.element.classList.remove("in-swap");
-            document.body.classList.remove("window-in-swap");
-
-            // Check swap is visible
-            if(this._swapCandidate !== null && this._swapVisible === false) {
-                clearTimeout(this._swapTimer);
+            if(canceled && this._swapVisible === true) {
                 this._swap(this._swapCandidate, this._draggedToSwap);
             }
             if(this._swapCandidate !== null) {
-                // Swap performed
-                const win0 = win;
-                const win1 = this._swapCandidate;
+                this._swapCandidate.element.classList.remove("swap-hover");
+            }
+            this._draggedToSwap.element.classList.remove("swap-hover");
 
-                win0.dispatchEvent(new Event("change"));
-                win1.dispatchEvent(new Event("change"));
+            win.element.classList.remove("in-swap");
+            document.body.classList.remove("window-in-swap");
+            document.body.removeEventListener("keydown", cancelListener);
 
-                win0.dispatchEvent(new CustomEvent("swap", {
-                    detail: {to: win1}
-                }));
+            // Check swap is visible
+            if(canceled === false) {
+                if(this._swapCandidate !== null && this._swapVisible === false) {
+                    this._swap(this._swapCandidate, this._draggedToSwap);
+                }
+                if(this._swapCandidate !== null) {
+                    // Swap performed
+                    const win0 = win;
+                    const win1 = this._swapCandidate;
+
+                    win0.dispatchEvent(new Event("change"));
+                    win1.dispatchEvent(new Event("change"));
+
+                    win0.dispatchEvent(new CustomEvent("swap", {
+                        detail: {to: win1}
+                    }));
+                }
             }
 
             // Clean up
@@ -1592,29 +1627,50 @@ class Window {
             clearTimeout(ticker);
         }).bind(this);
     }
-    static registerDragToSwap(win0) {
+    static dismissDragToSwap(win0) {
         if(this.beingSwapped === false) return;
 
         const win1 = this._draggedToSwap;
 
+        if(win0 === this._swapCandidate && this._swapVisible === false) {
+
+            clearTimeout(this._swapTimer);
+
+            this._swapCandidate = null;
+            win0.element.classList.remove("swap-hover");
+            
+        }
+    }
+    static registerDragToSwap(win0, mouseDown) {
+        if(this.beingSwapped === false) return;
+
+        const win1 = this._draggedToSwap;
         clearTimeout(this._swapTimer);
+
+        const oldCandidate = this._swapCandidate;
 
         if(win1 === win0) {
             if(this._swapVisible === false) {
+                if(oldCandidate !== null) {
+                    oldCandidate.element.classList.remove("swap-hover");
+                }
                 this._swapCandidate = null;
             }
             return;
         }
 
-        const oldCandidate = this._swapCandidate;
         if(oldCandidate !== null && oldCandidate !== win0) {
-            this._swap(oldCandidate, win1);
+            if(this._swapVisible) {
+                this._swap(oldCandidate, win1);
+                this._swapVisible = false;
+            }
+            oldCandidate.element.classList.remove("swap-hover");
         }
 
         this._swapCandidate = win0;
         
     }
-    static attemptDragToSwap(win0) {
+    static attemptDragToSwap(win0, mouseDown) {
         if(this.beingSwapped === false) return;
 
         const win1 = this._draggedToSwap;
@@ -1624,6 +1680,13 @@ class Window {
         const representation = this._swapRepresentation;
         const rStyle = representation.style;
 
+        const adjustSwapHover = (() => {
+            if(mouseDown) return;
+            const v = this._swapVisible;
+            win0.element.classList[v ? "remove" : "add"]("swap-hover");
+            win1.element.classList[v ? "add" : "remove"]("swap-hover");
+        }).bind(this);
+
         if(win1 === win0) {
             if(this._swapVisible === true) {
                 this._swap(win1, this._swapCandidate);
@@ -1632,6 +1695,7 @@ class Window {
                 rStyle.opacity = "";
             }
         } else if(win0 === this._swapCandidate) {
+            adjustSwapHover();
             this._swapTimer = setTimeout((() => {
                 if(win0 !== this._swapCandidate) return;
                 if(this._swapVisible === true) return;
@@ -1650,7 +1714,8 @@ class Window {
 
                 this._swap(win1, win0);
                 this._swapVisible = true;
-            }).bind(this), 500);
+                adjustSwapHover();
+            }).bind(this), 750);
         }
     }
     static _swap(win0, win1) {
@@ -2278,6 +2343,7 @@ const btnWinMute = document.getElementById("btn-window-mute");
 const btnWinUnmute = document.getElementById("btn-window-unmute");
 const btnWinOptions = document.getElementById("btn-window-options");
 const btnWinOpenChat = document.getElementById("btn-window-open-chat");
+const btnWinSwapWith = document.getElementById("btn-window-swap-with");
 const btnWinSendToBack = document.getElementById("btn-window-send-to-back");
 const btnWinClose = document.getElementById("btn-window-close");
 const btnAddStream = document.getElementById("btn-add-stream");
@@ -2373,6 +2439,11 @@ btnWinOpenChat.addEventListener("mouseup", (ev) => {
 
     Window.storeSerialization();
     storeTwitchSerialization();
+});
+btnWinSwapWith.addEventListener("mouseup", ev => {
+    ev.stopPropagation();
+    Window.startDragToSwap(ctxMenuTarget);
+    ctxMenu.style.display = "";
 });
 btnWinSendToBack.addEventListener("mouseup", (ev) => {
     ctxMenuTarget.sendToBack();
