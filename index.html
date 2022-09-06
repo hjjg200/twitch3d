@@ -2910,6 +2910,7 @@ Window.addEventListener("new-window", ev => {
     
     // Start timer for offline refreshing
     // - Twitch players sometimes do not go live when the channel goes live
+    /*
     setInterval(() => {
         for(let key in twitchComponents) {
             const player = twitchPlayers[key];
@@ -2918,6 +2919,7 @@ Window.addEventListener("new-window", ev => {
             player.setChannel(twitchComponents[key].channel);
         }
     }, 30*1000); // 30 seconds
+    */
 }
 
         </script>
