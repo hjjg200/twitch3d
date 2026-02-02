@@ -1,0 +1,2929 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Twitch3D</title>
+        <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="google-site-verification" content="xd6I9Z_Uazj4US1VyVmXHPiEXlYU5O-teEDfsLW8Kt8" />
+
+        <meta property="og:title" content="Twitch3D"/>
+        <meta property="og:description" content="Watch multiple streams and move them with liberty"/>
+        <meta property="og:url" content="https://hjjg200.github.io/twitch3d"/>
+        <meta property="og:image" content="https://hjjg200.github.io/twitch3d/logo.png"/>
+
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
+        <link href="https://hjjg200.github.io/fonts/GmarketSans/GmarketSans.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;900&display=swap" rel="stylesheet">
+
+        <style>
+
+:root {
+    --title-bar-height: 1.5rem;
+    --corner-width: 1.2rem;
+    --corner-edge-width: 0.4rem;
+    --color-twitch: #9146FF;
+    --color-twitch-bright: #a66bff;
+    --color-twitch-alt: #63ffc0;
+    --color-twitch-alt-bright: #90ffd3;
+    --color-background-2: #1E0F53;
+    --color-background-3: #19074d;
+    --color-gray-0: #F0F0FF; /* 0: most vivid */
+    --color-gray-1: #7548bd;
+    --color-gray-2: #4f4088;
+    --color-gray-3: #322466; /* 3: most dull */
+    --color-shadow: rgba(0, 0, 0, 0.3);
+}
+
+* {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    -ms-appearance: none;
+    box-sizing: border-box;
+    text-size-adjust: none;
+    -webkit-text-size-adjust: 100%;
+
+    margin: 0;
+    padding: 0;
+    outline: none;
+    border: none;
+}
+
+html, body {
+    background-color: black;
+    color: var(--color-gray-0);
+    font-size: 16px;
+    font-family: Roboto, /*Helvetica, Arial,*/ 'Noto Sans KR', sans-serif;
+    line-height: 1.5;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    transition: background-color cubic-bezier(0.61, 1, 0.88, 1) .2s;
+}
+body:not(.still-cursor) {
+    background-color: rgb(2, 1, 2); /* it's for clear view of windows' boundary */
+    transition: background-color cubic-bezier(0.11, 0, 0.5, 0) .2s;
+}
+body.lang-ko {
+}
+
+h1, h2, h3, h4 {
+    font-family: Poppins, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.025rem;
+}
+body.lang-ko h1,
+body.lang-ko h2,
+body.lang-ko h3,
+body.lang-ko h4 {
+    font-family: 'Gmarket Sans', sans-serif;;
+    font-weight: 400;
+}
+
+main {
+    width: 100%;
+    height: 100%;
+}
+
+header, footer {
+    position: absolute;
+}
+header {
+    top: 2rem;
+    left: 2.5rem;
+}
+footer {
+    bottom: 1.75rem;
+    right: 2.5rem;
+    display: flex;
+    align-items: flex-end;
+    font-size: .8125rem;
+    opacity: 0.8;
+}
+footer .frame {
+    gap: 2rem;
+}
+a {
+    color: var(--color-gray-0);
+    text-decoration: none;
+}
+a:hover {
+    color: var(--color-twitch-alt);
+}
+
+button {
+    border: none;
+    outline: none;
+    color: var(--color-twitch);
+    background: var(--color-twitch-alt);
+    font-weight: bold;
+    font-size: .8rem;
+    font-family: inherit;
+    padding: .4rem .7rem;
+    border-radius: .3rem;
+}
+
+button:hover {
+    background: var(--color-twitch-alt-bright);
+}
+
+iframe {
+    pointer-events: none;
+}
+
+/* Specific */
+
+body.still-cursor main {
+    cursor: none !important;
+}
+
+body.window-in-move,
+body.window-in-swap {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+button.button-cancel {
+    background: var(--color-gray-3);
+    color: var(--color-gray-0);
+}
+button.button-cancel:hover {
+    background: var(--color-gray-2);
+}
+
+#introduction {
+    font-size: 1rem;
+    line-height: 1.25;
+    top: 50%;
+    left: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+#introduction .frame {
+    gap: 1.125rem;
+}
+#introduction img {
+    width: auto;
+    height: 2.75rem;
+}
+
+.frame {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+.frame > * {
+}
+.frame-vertical {flex-direction: column;}
+.frame-ralign {
+    justify-content: flex-end;
+}
+
+body.fullscreen #btn-fullscreen,
+body:not(.fullscreen) #btn-exit-fullscreen {
+    display: none;
+}
+
+#context-menu {
+    box-shadow: 0 0 .8rem var(--color-shadow);
+    display: none;
+    width: fit-content;
+    background: var(--color-background-3);
+    position: absolute;
+    z-index: 2001;
+    overflow: hidden;
+    padding: .25rem 0;
+    border-radius: .25rem;
+}
+#context-menu-content {
+    position: relative;
+}
+#context-menu ul {
+    list-style: none;
+}
+#context-menu ul li {
+    display: block;
+}
+#context-menu:not(.for-window) li.window-specific {display: none;}
+#context-menu:not(.for-player) li.player-specific {display: none;}
+#context-menu.for-muted-player #btn-window-mute {display: none;}
+#context-menu:not(.for-muted-player) #btn-window-unmute {display: none;}
+#context-menu.for-fully-maximized-window #btn-window-send-to-back {display: none;}
+#context-menu .context-menu-separator {
+    padding: .2rem 0;
+}
+#context-menu .context-menu-separator hr {
+    height: 1px;
+    width: 100%;
+    background-color: var(--color-gray-3);
+}
+#context-menu button {
+    background: none;
+    border-radius: 0;
+    color: var(--color-gray-0);
+    display: block;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+    font-size: .85rem;
+    padding: .4375rem 4rem .4375rem .625rem;
+    font-weight: normal;
+    text-align: left;
+    transition: none;
+}
+#context-menu button:hover {
+    background: var(--color-twitch-alt);
+    color: var(--color-twitch);
+}
+
+.modal {
+    background: rgba(0, 0, 0, 0.4);
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+}
+.modal.open {
+    display: block;
+    opacity: 1;
+}
+@keyframes modal-open {
+    from {
+        top: 45%; 
+        opacity: 0.2;
+    }
+    to {
+        top: 50%;
+        opacity: 1;
+    }
+}
+.modal-content {
+    background: var(--color-background-3);
+    color: var(--color-gray-0);
+    position: relative;
+    font-size: .8rem;
+    padding: 1.25rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max-content;
+    animation: modal-open cubic-bezier(0.22, 1, 0.36, 1) .7s 1;
+}
+
+.modal-buttons {
+    margin-top: 1rem;
+}
+
+label {
+    display: flex !important;
+    align-items: center;
+    gap: .3rem;
+}
+
+input,
+button {
+    transition-property: background-color;
+    transition-duration: .15s;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+input[type='checkbox'] {
+    background-color: var(--color-gray-3);
+    background-image: url(svg/check-twitch.svg);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 0 0;
+    border-radius: .3rem;
+    width: 1rem;
+    height: 1rem;
+    display: inline-block;
+}
+input[type='checkbox']:hover {
+    background-color: var(--color-gray-2);
+}
+input[type='checkbox']:checked {
+    background-color: var(--color-twitch-alt);
+    background-size: auto 50%;
+}
+input[type='checkbox']:checked:hover {
+    background-color: var(--color-twitch-alt-bright);
+}
+
+input[type='text'] {
+    background: var(--color-gray-3);
+    color: var(--color-twitch-alt-bright);
+    border-radius: .3rem;
+    padding: .4rem .6rem;
+}
+input[type='text']:hover {
+    box-shadow: 0 0 0 .125rem var(--color-gray-2) inset;
+}
+input[type='text']:focus {
+    box-shadow: 0 0 0 .125rem var(--color-twitch-alt) inset;
+    background: var(--color-background-2);
+}
+input[type='range'] {
+    width: 100%;
+    height: .375rem;
+    border-radius: .5rem;
+    background-color: var(--color-gray-2);
+}
+input[type='range']::-webkit-slider-thumb {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: .9rem;
+    height: .9rem;
+    background: var(--color-gray-0);
+    border-radius: 50%;
+    box-shadow: 0 .2rem .4rem var(--color-shadow);
+}
+
+@keyframes show-disable-iframe-button {
+    from {
+        transform: translate(-50%, -1rem); opacity: 0.45;
+    }
+    to {
+        transform: translate(-50%, 1rem); opacity: 1;
+    }
+}
+#btn-disable-iframes {
+    position: absolute;
+    background-color: rgba(55, 55, 55, 0.9);
+    box-shadow: 0 .2rem .4rem rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: .875rem;
+    font-weight: bold;
+    padding: .75rem 1rem;
+    border-radius: 2rem;
+    z-index: 2001;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .625rem;
+    align-items: center;
+}
+body:not(.iframe-enabled) #btn-disable-iframes {
+    display: none;
+}
+body.iframe-enabled #btn-disable-iframes {
+    animation: show-disable-iframe-button cubic-bezier(0.22, 1, 0.36, 1) .4s 1 forwards;
+}
+#btn-disable-iframes.small {
+    padding: .75rem;
+}
+#btn-disable-iframes.small span {
+    display: none;
+}
+#btn-disable-iframes i {
+    background-image: url(svg/close.svg);
+    background-size: auto 90%;
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    height: 1em;
+    width: 1rem;
+    display: block;
+}
+#btn-disable-iframes span {
+    line-height: 1em;
+}
+#btn-disable-iframes:hover {
+    background-color: rgba(77, 77, 77, 0.95);
+}
+
+#modal-add-stream #input-streamer {
+    min-width: 15rem;
+    width: 100%;
+}
+
+#modal-add-stream .inputs {
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+}
+
+#modal-window-options .modal-content {
+    width: 17rem;
+}
+#modal-window-options label[for='range-volume'],
+#modal-window-options label[for='range-volume-maximized'],
+#modal-window-options label[for='dropdown-quality-select'],
+#modal-window-options label[for='dropdown-quality-maximized-select'] {
+    line-height: 1.5rem;
+    justify-content: space-between;
+}
+#modal-window-options .dropdown-button {
+    min-width: 7rem;
+}
+#modal-window-options input[type='range'] {
+    width: 6rem;
+}
+#window-options-maximized {
+    background-color: var(--color-background-2);
+    border-radius: .4rem;
+    padding: .75rem;
+    margin-top: .5rem;
+}
+#window-options-maximized-inputs.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* WINDOW */
+.window {
+    position: absolute;
+    background: black;
+    box-shadow: 0 .2rem .2rem rgba(0, 0, 0, 0);
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    transition-duration: .65s;
+    transition-property: box-shadow, opacity; /*, width, height, top, left;*/
+    opacity: 1;
+}
+.window.in-move,
+.window.in-resize,
+body.window-in-swap .window {
+    transition-property: box-shadow, opacity;
+}
+body:not(.still-cursor) .window.focused {
+    box-shadow: 0 .2rem 1rem var(--color-shadow);
+}
+body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enabled).twitch-offline {
+    opacity: 0;
+}
+.window.twitch-offline:not(.maximized-xAxis.maximized-yAxis):not(:hover) {
+    opacity: 0.3;
+}
+.window.maximized {
+    transform: none !important;
+    transition-property: box-shadow, opacity;
+}
+.window.maximized-xAxis.maximized-yAxis {
+    z-index: 0 !important;
+}
+.window.maximized-xAxis {
+    left: 0 !important;
+    width: 100% !important;
+}
+.window.maximized-yAxis {
+    top: 0 !important;
+    height: 100% !important;
+}
+.window.in-move .corner {
+    display: none;
+}
+.window-relative {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.window-title-bar {
+    background: var(--color-gray-3);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--title-bar-height);
+    opacity: 1;
+    transition: opacity cubic-bezier(0.33, 1, 0.68, 1) .3s;
+}
+.window:not(.in-move):not(.in-resize) .window-title-bar:not(:hover) {
+    opacity: 0;
+}
+.window-title-bar-relative,
+.window-title {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.window-title-bar-relative {
+    position: relative;
+}
+.window-title-text {
+    color: white;
+    position: absolute;
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    transform: translateY(-50%);
+    user-select: none;
+    -webkit-user-select: none;
+}
+.window-controls {
+    display: flex;
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+}
+.window-controls button {
+    background: none;
+    border-radius: 0;
+    width: 2.625rem;
+    height: 100%;
+}
+.window-controls .button-maximize {
+    background-image: url(svg/maximize.svg);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: auto 50%;
+}
+.window-controls .button-maximize:hover {
+    background-color: var(--color-gray-2);
+}
+.window-controls .button-close {
+    background-color: #FF354D;
+    background-image: url(svg/close.svg);
+    background-repeat: no-repeat;
+    background-position: 50%, 50%;
+    background-size: auto 53%;
+}
+.window-controls .button-close:hover {
+    background-color: #ff4a5f;
+}
+.window .corner {
+    transform: translate(-50%, -50%);
+    position: absolute;
+}
+.window.in-move .corner,
+.window:not(.focused) .corner,
+.window.maximized-xAxis.maximized-yAxis .corner {
+    display: none;
+}
+.window .corner-top,
+.window .corner-bottom {
+    cursor: ns-resize;
+    left: 50%;
+    width: 100%;
+    height: var(--corner-edge-width);
+}
+.window .corner-bottom {top: 100%;}
+.window .corner-left,
+.window .corner-right {
+    cursor: ew-resize;
+    top: 50%;
+    width: var(--corner-edge-width);
+    height: 100%;
+}
+.window .corner-right {left: 100%;}
+.window .corner-top-left,
+.window .corner-top-right,
+.window .corner-bottom-right,
+.window .corner-bottom-left {
+    width: var(--corner-width);
+    height: var(--corner-width);
+}
+.window .corner-top-left,
+.window .corner-bottom-right {
+    cursor: nwse-resize;
+}
+.window .corner-top-right,
+.window .corner-bottom-left {
+    cursor: nesw-resize;
+}
+.window .corner-top-right {left: 100%;}
+.window .corner-bottom-right {left: 100%; top: 100%;}
+.window .corner-bottom-left {top: 100%;}
+.window-content-overlay,
+.window-content,
+.window-content > * {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+}
+.window iframe {
+    pointer-events: none;
+}
+.window.iframe-enabled iframe {
+    pointer-events: all;
+}
+@keyframes iframe-hint {
+    from {
+        box-shadow: 0 0 1rem rgba(85, 126, 192, 0.2) inset;
+    }
+    to {
+        box-shadow: 0 0 2rem rgba(92, 137, 209, 0.795) inset;
+    }
+}
+.window.iframe-enabled .window-content-overlay {
+    animation: cubic-bezier(0.22, 1, 0.36, 1) .4s 1 iframe-hint forwards;
+    pointer-events: none;
+}
+.window.in-swap .window-content-overlay {
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+.window.swap-hover .window-content-overlay {
+    box-shadow: 0 0 0 .125rem #FF3D00 inset;
+}
+
+#window-connections-indicator {
+    display: none;
+    position: absolute;
+    box-shadow: 0 0 0 2px #FF3D00 inset;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+#window-fully-maximized-representation {
+    background: #ff993a79;
+    display: none;
+    position: absolute;
+}
+#window-fully-maximized-representation .window-title-bar {
+    background: #ff993a31;
+    opacity: 1 !important;
+}
+
+.window-swap-representation {
+    background: rgba(255, 255, 255, 0.5);
+    position: absolute;
+    z-index: 1001;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    transition-duration: .85s;
+    transition-property: opacity, transform;
+    width: 16rem;
+    height: 9rem;
+    transform: scale(1);
+    pointer-events: none;
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+}
+.dropdown select {
+    display: none;
+}
+.dropdown .dropdown-list {
+    display: none;
+    position: absolute;
+    background-color: var(--color-gray-3);
+    color: var(--color-gray-0);
+    list-style: none;
+    top: 0;
+    width: 100%;
+    border-radius: .25rem;
+    box-shadow: 0 .25rem .375rem var(--color-shadow);
+    overflow: hidden;
+    z-index: 2001;
+}
+.dropdown.open .dropdown-list {
+    display: block;
+}
+.dropdown .dropdown-list li {
+    padding: 0 .75rem;
+    line-height: 2em;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.dropdown .dropdown-list li.selected {
+    color: var(--color-twitch-alt);
+}
+.dropdown .dropdown-list li:hover {
+    background-color: var(--color-gray-2);
+}
+.dropdown-button {
+    background-color: var(--color-gray-3);
+    font-weight: normal;
+    font-family: inherit;
+    line-height: inherit;
+    color: var(--color-gray-0);
+    padding: 0 2.5rem 0 .7rem;
+    border-radius: .25rem;
+    text-align: left;
+}
+.dropdown-button:hover {
+    background-color: var(--color-gray-2);
+}
+.dropdown-caret {
+    background-image: url(svg/caret.svg);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: auto 33%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 2rem;
+    height: 100%;
+    pointer-events: none;
+}
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Twitch3D</h1>
+        </header>
+        <footer>
+            <div class="frame">
+                <a target="_blank" href="https://github.com/hjjg200/twitch3d">GitHub</a>
+                <span>© 2021 hjjg200</span>
+            </div>
+        </footer>
+        <main>
+            <div id="introduction">
+                <div class="frame">
+                    <img src="logo.png" alt="LOGO">
+                    <p>Press <b>Right Mouse Button</b> to open up menu and<br>add your favorite Twitch channels!</p>
+                </div>
+            </div>
+            <div id="streams-container">
+
+            </div>
+            <button id="btn-disable-iframes">
+                <i></i>
+                <span>Leave Twitch UI</span>
+            </button>
+            <div id="window-connections-indicator"></div>
+            <div id="window-fully-maximized-representation" class="window">
+                <div class="window-relative">
+                    <div class="window-title-bar">
+                        <div class="window-title-bar-relative">
+                            <div class="window-title">
+                                <div class="window-title-text"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <div id="context-menu">
+            <div id="context-menu-content">
+                <ul id="context-menu-items">
+                    <li class="window-specific player-specific">
+                        <button id="btn-window-mute">Mute</button>
+                    </li>
+                    <li class="window-specific player-specific">
+                        <button id="btn-window-unmute">Unmute</button>
+                    </li>
+                    <li class="window-specific player-specific">
+                        <button id="btn-window-options">Options</button>
+                    </li>
+                    <li class="window-specific player-specific">
+                        <button id="btn-window-open-chat">Open Chat</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-swap-with">Swap with..</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-send-to-back">Send to Back</button>
+                    </li>
+                    <li class="window-specific">
+                        <button id="btn-window-close">Close</button>
+                    </li>
+
+                    <li class="window-specific context-menu-separator"><hr/></li>
+
+                    <li>
+                        <button id="btn-add-stream">Add Channel</button> 
+                    </li>
+                    <li>
+                        <button id="btn-fullscreen">Fullscreen</button>
+                    </li>
+                    <li>
+                        <button id="btn-exit-fullscreen">Exit Fullscreen</button>
+                    </li>
+                    <li>
+                        <button id="btn-github">Report Bug</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="modal-add-stream" class="modal">
+            <div class="modal-content">
+                <h2>Add Channel</h2>
+                <p>Enter the Twitch ID of the streamer</p>
+                <div class="inputs frame frame-vertical">
+                    <label for="input-with-chat">
+                        <input type="checkbox" id="input-with-chat">
+                        <span>Include Chat</span>
+                    </label>
+                    <label for="input-streamer">
+                        <input type="text" id="input-streamer">
+                    </label>
+                </div>
+                <div class="frame frame-ralign modal-buttons">
+                    <button class="button button-ok">OK</button>
+                    <button class="button button-cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-window-options" class="modal">
+            <div class="modal-content">
+                <div class="frame frame-vertical">
+                    <h2>Options</h2>
+                    <label for="range-volume">
+                        <span>Volume</span>
+                        <input type="range" id="range-volume" min="0" max="100" value="50">
+                    </label>
+                    <label for="dropdown-quality-select">
+                        <span>Quality</span>
+                        <div id="dropdown-quality">
+
+                        </div>
+                    </label>
+                    <div id="window-options-maximized" class="frame frame-vertical">
+                        <label for="checkbox-alternate-maximized">
+                            <input type="checkbox" id="checkbox-alternate-maximized">
+                            <span>Alternate When Maximized</span>
+                        </label>
+                        <div id="window-options-maximized-inputs" class="frame frame-vertical">
+                            <label for="range-volume-maximized">
+                                <span>Volume</span>
+                                <input type="range" id="range-volume-maximized" min="0" max="100" value="50">
+                            </label>
+                            <label for="dropdown-quality-maximized-select">
+                                <span>Quality</span>
+                                <div id="dropdown-quality-maximized">
+        
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="frame frame-ralign modal-buttons">
+                    <button class="button button-ok">OK</button>
+                    <button class="button button-cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <script src= "https://player.twitch.tv/js/embed/v1.js"></script>
+        <script>
+
+let lang = navigator.language.slice(0, 2);
+const locales = {
+    "en": {
+        "%alert-unmute-failure": "Failed to unmute the player! You have to unmute it yourself due to your browser's security policy.",
+        "%quality-auto": "Auto",
+        "%quality-source": "Source"
+    },
+    "ko": {
+        "#introduction p": "<b>오른쪽 마우스 버튼</b>으로 메뉴를 열어서<br>스트리머들을 추가해보세요!",
+        "#btn-window-mute": "음소거",
+        "#btn-window-unmute": "음소거 해제",
+        "#btn-window-options": "플레이어 설정",
+        "#btn-window-open-chat": "채팅 열기",
+        "#btn-window-swap-with": "위치 바꾸기..",
+        "#btn-window-send-to-back": "맨 뒤로 보내기",
+        "#btn-window-close": "닫기",
+        "#btn-add-stream": "채널 추가",
+        "#btn-fullscreen": "전체화면",
+        "#btn-exit-fullscreen": "전체화면 나가기",
+        "#btn-github": "버그 신고하기",
+        "#btn-disable-iframes span": "트위치 UI 나가기",
+        "#modal-add-stream h2": "채널 추가",
+        "#modal-add-stream h2 + p": "추가할 스트리머의 트위치 아이디를 입력하세요",
+        "#modal-add-stream [for='input-with-chat'] span": "채팅 포함",
+        "#modal-window-options h2": "플레이어 설정",
+        "#modal-window-options [for='range-volume'] > span": "음량",
+        "#modal-window-options [for='range-volume-maximized'] > span": "음량",
+        "#modal-window-options [for='checkbox-alternate-maximized'] > span": "창 최대화 시 변경",
+        "#modal-window-options [for='dropdown-quality-select'] > span": "화질",
+        "#modal-window-options [for='dropdown-quality-maximized-select'] > span": "화질",
+        ".button-ok": "확인",
+        ".button-cancel": "취소",
+
+        // NON-HTML
+        "%alert-unmute-failure": "음소거 해제에 실패했습니다. 브라우저의 보안 정책으로 인해 유저가 직접 음소거를 해제해야 합니다.",
+        "%quality-auto": "자동",
+        "%quality-source": "원본"
+    }
+};
+if(!(lang in locales)) lang = "en";
+document.body.classList.add(`lang-${lang}`);
+for(const key in locales[lang]) {
+    if(key.indexOf("%") === 0) continue;
+    for(const el of document.querySelectorAll(key).values()) {
+        el.innerHTML = locales[lang][key];
+    }
+}
+
+const streamsContainer = document.getElementById("streams-container");
+
+const createElement = (tag, ...classes) => {
+    const element = document.createElement(tag);
+    element.classList.add(...classes);
+    return element;
+};
+
+// Range input style
+const ranges = document.querySelectorAll("input[type='range']");
+const styleRangeFill = range => {
+    const value = parseInt(range.value);
+    range.style.background = `linear-gradient(90deg, var(--color-twitch-alt) ${value}%, var(--color-gray-2) ${value}%)`;
+};
+for(const range of ranges.values()) {
+    styleRangeFill(range);
+    range.addEventListener("input", () => {
+        styleRangeFill(range);
+    });
+}
+
+// Dropdown
+const createDropdown = (containerId, initialItems) => {
+    const dropdown = document.getElementById(containerId);
+    if(dropdown === null) return;
+
+    dropdown.classList.add("dropdown");
+    const select = createElement("select");
+    const button = createElement("button", "dropdown-button");
+    const caret = createElement("div", "dropdown-caret");
+    const list = createElement("ul", "dropdown-list");
+    let ary = [];
+
+    document.addEventListener("mouseup", ev => {
+        if(getParentInclusive(ev.target, dropdown) === null) dropdown.close();
+        else dropdown.isOpen() ? dropdown.close() : dropdown.open();
+    });
+
+    select.id = `${containerId}-select`;
+    select.addEventListener("change", (ev) => {
+        dropdown.dispatchEvent(new Event(ev.type, ev));
+    });
+
+    dropdown.appendChild(select);
+    dropdown.appendChild(button);
+    dropdown.appendChild(caret);
+    dropdown.appendChild(list);
+
+    dropdown.indexOfValue = value => {
+        for(let i = 0; i < ary.length; i++) {
+            if(ary[i].value === value) return i;
+        }
+        return -1;
+    };
+
+    dropdown.addItems = (...items) => {
+        let selected = null;
+        for(const each of items) {
+            const name = each.name || each;
+            const value = each.value || each;
+
+            const option = createElement("option");
+            const li = createElement("li");
+
+            option.value = value;
+            li.setAttribute("data-value", value);
+            li.textContent = name;
+
+            select.appendChild(option);
+            list.appendChild(li);
+
+            const item = {
+                name, value, li, option
+            };
+
+            li.addEventListener("mouseup", ev => {
+                dropdown.setItem(item);
+            });
+
+            if(each.selected && each.selected === true) selected = item;
+
+            ary.push(item);
+        }
+        if(selected !== null) dropdown._setItem(selected);
+    };
+
+    dropdown.removeAllItems = () => {
+        for(const li of list.querySelectorAll("li").values()) {
+            li.parentNode.removeChild(li);
+        }
+        for(const option of select.querySelectorAll("option").values()) {
+            option.parentNode.removeChild(option);
+        }
+        button.textContent = "";
+        ary = [];
+    };
+
+    dropdown._setItem = item => {
+        button.textContent = item.name;
+        for(const li of list.querySelectorAll("li").values()) {
+            li.classList.remove("selected");
+        }
+        item.li.classList.add("selected");
+        select.value = item.value;
+    };
+
+    dropdown._setItemIndex = idx => {
+        dropdown._setItem(ary[idx]);
+    };
+
+    dropdown.setItemIndex = idx => {
+        dropdown._setItemIndex(idx);
+        dropdown.dispatchEvent(new Event('change'));
+    };
+
+    dropdown.setItem = item => {
+        dropdown._setItem(item);
+        dropdown.dispatchEvent(new Event('change'));
+    };
+
+    dropdown.open = () => {
+        dropdown.classList.add("open");
+    };
+
+    dropdown.isOpen = () => dropdown.matches(".open");
+
+    dropdown.close = () => {
+        dropdown.classList.remove("open");
+    };
+
+    Object.defineProperty(dropdown, 'value', {
+        get() {return select.value;}
+    });
+
+    // Post
+    if(initialItems) {
+        dropdown.addItems(...initialItems);
+    }
+
+    return dropdown;
+
+};
+
+// Mouse tracker
+let mouseX = 0;
+let mouseY = 0;
+let mouseThrottled = false;
+let mouseHideHandler = null;
+const mouseHandler = (event) => {
+    if(mouseThrottled) return;
+    mouseThrottled = true;
+    document.body.classList.remove("still-cursor");
+    mouseX = Rem.fromPixel(event.pageX);
+    mouseY = Rem.fromPixel(event.pageY);
+    // Hiding cursor
+    clearTimeout(mouseHideHandler);
+    mouseHideHandler = setTimeout(((x, y) => {
+        if(mouseX === x && mouseY === y) {
+            document.body.classList.add("still-cursor");
+        }
+    }).bind(null, mouseX, mouseY), 3000);
+    //
+    setTimeout(() => {
+        mouseThrottled = false;
+    }, 16);
+};
+document.addEventListener("mousemove", mouseHandler);
+
+// Class Rem
+class Rem {
+    static get epsilon() {
+        return this.fromPixel(0.5); // fixed margin for pixel comparison
+    }
+    static get fontSize() {
+        return parseFloat(getComputedStyle(document.documentElement).fontSize);
+    }
+    static eq(lhs, rhs) {return Math.abs(lhs-rhs) < this.epsilon;}
+    static lt(lhs, rhs) {return lhs < rhs - this.epsilon;}
+    static lte(lhs, rhs) {return this.lt(lhs, rhs) || this.eq(lhs, rhs);}
+    static gt(lhs, rhs) {return lhs > rhs + this.epsilon;}
+    static gte(lhs, rhs) {return this.gt(lhs, rhs) || this.eq(lhs, rhs);}
+    static toPixel(rem) {
+        return rem * Rem.fontSize;
+    }
+    static toString(rem) {
+        return `${rem}rem`;
+    }
+    static fromPixel(px) {
+        return px / this.fontSize;
+    }
+    static fromString(str) {
+        str = str.trim();
+        if(str.indexOf("px") !== -1) return this.fromPixel(parseFloat(str.replace("px", "")));
+        return parseFloat(str.replace("rem", ""));
+    }
+};
+
+// Class DLL for window indexing
+class DLL {
+    constructor() {
+        this._map = {};
+        this.head = null;
+    }
+    get length() {
+        return Object.keys(this._map).length;
+    }
+    values() {
+        return Object.values(this._map).map((v) => v.value);
+    }
+    remove(key) {
+        const node = this._map[key];
+        const next = node.next;
+        const prev = node.prev;
+        if(next !== null) next.prev = prev;
+        if(prev !== null) prev.next = next;
+        if(this.head === node) this.head = prev;
+        delete this._map[key];
+    }
+    get(key) {
+        if(!(key in this._map)) return null;
+        return this._map[key].value;
+    }
+    swap(key0, key1) {
+        const node0 = this._map[key0];
+        const node1 = this._map[key1];
+        [node0.value, node1.value] = [node1.value, node0.value];
+        this._map[key0] = node1;
+        this._map[key1] = node0;
+    }
+    put(key, value) {
+        const oldHead = this.head;
+        this.head = {
+            value: value,
+            next: null,
+            prev: oldHead
+        };
+        this._map[key] = this.head;
+        if(oldHead !== null) {
+            oldHead.next = this.head;
+        }
+    }
+    shove(key, value) {
+        let tail = this.head;
+        if(tail === null) {
+            this.put(key, value);
+            return;
+        }
+        while(tail.prev !== null) {
+            tail = tail.prev;
+        }
+        this._map[key] = {
+            value,
+            next: tail,
+            prev: null
+        };
+        tail.prev = this._map[key];
+    }
+}
+
+// Class Window
+class Window {
+    static _manager = createElement("div", "window-manager");
+    static addEventListener = this._manager.addEventListener.bind(this._manager);
+    static dispatchEvent = this._manager.dispatchEvent.bind(this._manager);
+    static baseZIndex = 1;
+    static windows = new DLL();
+    static groups = [];
+    static autoIncrement = 0;
+    static newId() {
+        return `window-${(new Date()).getTime()}-${this.autoIncrement++}`;
+    }
+    static overrideFallback = {
+        id: null,
+        connectedTo: null,
+        connectionsAnchor: null,
+        xMaximized: false,
+        yMaximized: false,
+        anchor: null
+    };
+
+    constructor({top, left, width, height}, overrides) {
+        // TODO: create window
+        overrides = {...Window.overrideFallback, ...overrides};
+        const id = overrides.id || Window.newId();
+        this.element = createElement("div", "window");
+        this.element.id = id;
+        this.element.style.top = Rem.toString(top);
+        this.element.style.left = Rem.toString(left);
+        this.element.style.width = Rem.toString(width);
+        this.element.style.height = Rem.toString(height);
+        this.element.style.zIndex = `${Window.windows.length + Window.baseZIndex}`;
+        this.addEventListener = this.element.addEventListener.bind(this.element);
+        this.dispatchEvent = this.element.dispatchEvent.bind(this.element);
+        //  div.window
+        //      div.window-relative
+        //          div.window-content
+        //          div.window-content-overlay
+        //          div.window-title-bar
+        //              div.window-title-bar-relative
+            //              div.window-title
+            //                  div.window-title-text
+            //              div.window-controls
+            //                  button.button-maximize
+            //                  button.button-close
+        //          div.corner.corner-top
+        //          div.corner.corner-right
+        //          div.corner.corner-bottom
+        //          div.corner.corner-left
+        //          div.corner.corner-top-left
+        //          div.corner.corner-top-right
+        //          div.corner.corner-bottom-right
+        //          div.corner.corner-bottom-left
+
+        // Relative
+        const relative = createElement("div", "window-relative");
+
+        // Window content
+        this.contentElement = createElement("div", "window-content");
+        this.contentElement.id = `${this.id}-content`;
+        const contentOverlay = createElement("div", "window-content-overlay");
+
+        let ctxMenuWasNotOpen = true;
+        let swapStarted = false;
+        contentOverlay.addEventListener("mousedown", ((ev) => {
+            if(document.body.matches(".window-in-swap")) return;
+
+            ctxMenuWasNotOpen = ctxMenu.style.display === "";
+            swapStarted = false;
+            Window.startDragToSwap(this);
+        }).bind(this));
+        Window.addEventListener("start-swap", (ev) => {
+            swapStarted = true;
+        });
+        let swapAttemptable = true;
+        contentOverlay.addEventListener("mouseenter", ((ev) => {
+            Window.registerDragToSwap(this, ev.buttons !== 0);
+        }).bind(this));
+        contentOverlay.addEventListener("mouseleave", ((ev) => {
+            Window.dismissDragToSwap(this);
+        }).bind(this));
+        contentOverlay.addEventListener("mousemove", ((ev) => {
+            if(swapAttemptable === false) return;
+            swapAttemptable = false;
+            Window.attemptDragToSwap(this, ev.buttons !== 0);
+            swapAttemptable = true;
+        }).bind(this));
+        contentOverlay.addEventListener("click", ((ev) => {
+            if(document.body.matches(".window-in-swap")) return;
+
+            this.focus();
+            if(ev.button === 0
+                && ctxMenuWasNotOpen
+                && swapStarted === false) {
+                enableIframe(this);
+            }
+        }).bind(this));
+
+        relative.appendChild(this.contentElement);
+        relative.appendChild(contentOverlay);
+
+        // Title bar
+        const titleBar = createElement("div", "window-title-bar");
+        const titleBarRelative = createElement("div", "window-title-bar-relative");
+        const title = createElement("div", "window-title");
+        const titleText = createElement("div", "window-title-text");
+        const controls = createElement("div", "window-controls");
+        const btnMaximize = createElement("button", "button-maximize");
+        const btnClose = createElement("button", "button-close");
+
+        title.addEventListener("mousedown", ((ev) => {
+            this.focus();
+            if(ev.button === 0) Window._startResize(this, 0, 0);
+        }).bind(this));
+
+        title.appendChild(titleText);
+        titleBarRelative.appendChild(title);
+
+        btnClose.addEventListener("click", ((ev) => {
+            if(ev.button === 0) this.close();
+        }).bind(this));
+        btnMaximize.addEventListener("click", ((ev) => {
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, true);
+            }
+        }).bind(this));
+        title.addEventListener("dblclick", ((ev) => {
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, true);
+            }
+        }).bind(this));
+
+        controls.appendChild(btnMaximize);
+        controls.appendChild(btnClose);
+        titleBarRelative.appendChild(controls);
+        titleBar.appendChild(titleBarRelative);
+        relative.appendChild(titleBar);
+        // Corners
+        const cornerTop = createElement("div", "corner", "corner-top");
+        const cornerRight = createElement("div", "corner", "corner-right");
+        const cornerBottom = createElement("div", "corner", "corner-bottom");
+        const cornerLeft = createElement("div", "corner", "corner-left");
+        const cornerTopLeft = createElement("div", "corner", "corner-top-left");
+        const cornerTopRight = createElement("div", "corner", "corner-top-right");
+        const cornerBottomRight = createElement("div", "corner", "corner-bottom-right");
+        const cornerBottomLeft = createElement("div", "corner", "corner-bottom-left");
+
+        // Corner edges
+        cornerTop.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, 1, 0);
+        }).bind(this));
+        cornerTop.addEventListener("dblclick", ((ev) => {
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(false, true);
+            }
+        }).bind(this));
+        cornerRight.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, 0, -1);
+        }).bind(this));
+        cornerRight.addEventListener("dblclick", ((ev) => {
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, false);
+            }
+        }).bind(this));
+        cornerBottom.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, -1, 0);
+        }).bind(this));
+        cornerBottom.addEventListener("dblclick", ((ev) => {
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(false, true);
+            }
+        }).bind(this));
+        cornerLeft.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, 0, 1);
+        }).bind(this));
+        cornerLeft.addEventListener("dblclick", ((ev) => {
+            if(ev.button === 0) {
+                this.isMaximized(false) ? this.unmaximize() : this.maximize(true, false);
+            }
+        }).bind(this));
+        // Corners
+        cornerTopLeft.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, 1, 1);
+        }).bind(this));
+        cornerTopRight.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, 1, -1);
+        }).bind(this));
+        cornerBottomRight.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, -1, -1);
+        }).bind(this));
+        cornerBottomLeft.addEventListener("mousedown", ((ev) => {
+            if(ev.button === 0) Window._startResize(this, -1, 1);
+        }).bind(this));
+
+        relative.appendChild(cornerTop);
+        relative.appendChild(cornerRight);
+        relative.appendChild(cornerBottom);
+        relative.appendChild(cornerLeft);
+        relative.appendChild(cornerTopLeft);
+        relative.appendChild(cornerTopRight);
+        relative.appendChild(cornerBottomRight);
+        relative.appendChild(cornerBottomLeft);
+
+        // Append
+        this.element.appendChild(relative);
+        streamsContainer.appendChild(this.element);
+        Window.windows.put(id, this);
+        this.focus();
+
+        // Maximize
+        if(overrides.xMaximized || overrides.yMaximized) this.maximize(overrides.xMaximized, overrides.yMaximized);
+
+        // Genenral properties
+        this.anchor = overrides.anchor || Window.anchorOf(this.rect());
+        this.connectedTo = overrides.connectedTo || {};
+        this.connectionsAnchor = overrides.connectionsAnchor || this.anchor;
+
+        // Store info
+        let changeDebouncer = null;
+        this.addEventListener("change", () => {
+            clearTimeout(changeDebouncer);
+            changeDebouncer = setTimeout(() => {
+                clearTimeout(changeDebouncer);
+                Window.storeSerialization();
+            }, 1000);
+        });
+
+        //
+        Window.dispatchEvent(new CustomEvent("new-window", {
+            detail: {target: this}
+        }))
+
+    }
+    get id() {
+        return this.element.id;
+    }
+    setTitle(title/*: string*/) {
+        this.element.querySelector(".window-title-text").textContent = title;
+    }
+    close() {
+        for(const id1 of Object.keys(this.connectedTo)) {
+            const win1 = Window.windows.get(id1);
+            delete win1.connectedTo[this.id];
+        }
+
+        if(this.isMaximized(true))
+            this.unmaximize();
+
+        Window.windows.remove(this.id);
+        this.element.parentNode.removeChild(this.element);
+        
+        Window.evaluateConnectionsAnchor();
+
+        this.dispatchEvent(new Event("change"));
+    }
+    static fullyMaximizedWindow = null;
+    maximize(xAxis/*: boolean*/, yAxis/*: boolean*/) {
+        if(xAxis && yAxis) {
+            // Replace the maximized window
+            if(Window.fullyMaximizedWindow !== null)
+                Window.fullyMaximizedWindow.unmaximize();
+            Window.fullyMaximizedWindow = this;
+        }
+        this.element.classList.add("maximized");
+        this.element.classList[xAxis ? "add" : "remove"]("maximized-xAxis");
+        this.element.classList[yAxis ? "add" : "remove"]("maximized-yAxis");
+        this.dispatchEvent(new Event("change"));
+        this.dispatchEvent(new Event("maximize"));
+    }
+    isMaximized(fully) {
+        const axes = this.maximizedAxes();
+        return fully
+            ? axes[0] && axes[1]
+            : axes[0] || axes[1];
+    }
+    maximizedAxes() {
+        return [
+            this.element.matches(".maximized-xAxis"),
+            this.element.matches(".maximized-yAxis")
+        ];
+    }
+    unmaximize() {
+        const prevXAxis = this.element.matches(".maximized-xAxis");
+        const prevYAxis = this.element.matches(".maximized-yAxis");
+        if(prevXAxis && prevYAxis) Window.fullyMaximizedWindow = null;
+        this.element.classList.remove("maximized", "maximized-xAxis", "maximized-yAxis");
+        this.dispatchEvent(new Event("change"));
+        this.dispatchEvent(new CustomEvent("unmaximize", {
+            detail: {prevXAxis, prevYAxis}
+        }));
+    }
+    focus() {
+        // Move top level
+        Window.windows.remove(this.id);
+        Window.windows.put(this.id, this);
+        Window._resetZIndexes();
+        //
+        this.element.classList.add("focused");
+        this.dispatchEvent(new Event("change"));
+    }
+    isFocused() {
+        return this.element.matches(".focused");
+    }
+    blur() {
+        this.element.classList.remove("focused");
+    }
+    sendToBack() {
+        // Move bottom level
+        Window.windows.remove(this.id);
+        Window.windows.shove(this.id, this);
+        Window._resetZIndexes();
+        this.dispatchEvent(new Event("change"));
+    }
+    static _resetZIndexes() {
+        let gap = 10;
+        let node = this.windows.head;
+        let headIndex = (this.windows.length - 1) * gap + this.baseZIndex;
+        while(node !== null) {
+            node.value.element.style.zIndex = `${headIndex}`;
+            node.value.blur();
+            node = node.prev;
+            headIndex -= gap;
+        }
+    }
+    static _stopDragToSwap = null;
+    static stopDragToSwap() {
+        if(this._stopDragToSwap !== null) {
+            this._stopDragToSwap();
+            this._stopDragToSwap = null;
+        }
+    }
+    static _draggedToSwap = null;
+    static _swapCandidate = null;
+    static _swapVisible = false;
+    static _swapTimer = null;
+    static _swapRepresentation = null;
+    static beingSwapped = false;
+    static startDragToSwap(win, activeOverride) {
+        const threshold = 1; // rem
+        const x0 = mouseX;
+        const y0 = mouseY;
+        let active = false;
+        let ticker = null;
+        let representation = null;
+        let rStyle = null;
+
+        this._draggedToSwap = win;
+        this._swapCandidate = null;
+        this._swapVisible = false;
+        this._swapTimer = null;
+        this._swapRepresentation = null;
+
+        ticker = setInterval((() => {
+            const x1 = mouseX;
+            const y1 = mouseY;
+            const active0 = active;
+            active = activeOverride || active || Rem.gte(((x1-x0)**2 + (y1-y0)**2)**0.5, threshold);
+            if(!active) return;
+
+            if(active0 === false) {
+                this.beingSwapped = true;
+
+                Window.dispatchEvent(new Event("start-swap"));
+                win.element.classList.add("in-swap");
+                document.body.classList.add("window-in-swap");
+
+                representation = createElement("div", "window-swap-representation");
+
+                this._swapRepresentation = representation;
+                document.body.appendChild(representation);
+                
+                const winRect = win.rect();
+                rStyle = representation.style;
+
+                const computed = getComputedStyle(representation);
+                const [cw, ch] = [Rem.fromString(computed.width), Rem.fromString(computed.height)];
+                let winw, winh;
+
+                rStyle.top = Rem.toString(winRect.top);
+                rStyle.left = Rem.toString(winRect.left);
+                winw = winRect.width;
+                winh = winRect.height;
+                if(win.isMaximized(true)) {
+                    rStyle.top = Rem.toString(0);
+                    rStyle.left = Rem.toString(0);
+                    [winw, winh] = windowDimensions();
+                }
+                rStyle.transform = `scale(${winw/cw},${winh/ch})`;
+                rStyle.opacity = "0";
+
+                setTimeout(() => {
+                    rStyle.transform = "";
+                    rStyle.opacity = "";
+                }, 100);
+
+                win.dispatchEvent(new Event('start-swap'));
+            }
+
+            const computed = getComputedStyle(representation);
+            const [cw, ch] = [Rem.fromString(computed.width), Rem.fromString(computed.height)];
+            rStyle.top = Rem.toString(y1 - ch/2);
+            rStyle.left = Rem.toString(x1 - cw/2);
+        }).bind(this), 5);
+
+        //
+        let canceled = false;
+        const cancelListener = (ev => {
+            if(ev.key === "Escape") {
+                ev.preventDefault();
+                canceled = true;
+                this.stopDragToSwap();
+            }
+        }).bind(this);
+        document.body.addEventListener("keydown", cancelListener);
+
+        this._stopDragToSwap = (() => {
+            this.beingSwapped = false;
+            Window.dispatchEvent(new Event("stop-swap"));
+            clearTimeout(this._swapTimer);
+
+            if(canceled && this._swapVisible === true) {
+                this._swap(this._swapCandidate, this._draggedToSwap);
+            }
+            if(this._swapCandidate !== null) {
+                this._swapCandidate.element.classList.remove("swap-hover");
+            }
+            this._draggedToSwap.element.classList.remove("swap-hover");
+
+            win.element.classList.remove("in-swap");
+            document.body.classList.remove("window-in-swap");
+            document.body.removeEventListener("keydown", cancelListener);
+
+            // Check swap is visible
+            if(canceled === false) {
+                if(this._swapCandidate !== null && this._swapVisible === false) {
+                    this._swap(this._swapCandidate, this._draggedToSwap);
+                }
+                if(this._swapCandidate !== null) {
+                    // Swap performed
+                    const win0 = win;
+                    const win1 = this._swapCandidate;
+
+                    win0.dispatchEvent(new Event("change"));
+                    win1.dispatchEvent(new Event("change"));
+
+                    win0.dispatchEvent(new CustomEvent("swap", {
+                        detail: {to: win1}
+                    }));
+                }
+            }
+
+            // Clean up
+            if(representation !== null) {
+                representation.parentNode.removeChild(representation);
+            }
+            this._draggedToSwap = null;
+            clearTimeout(ticker);
+        }).bind(this);
+    }
+    static dismissDragToSwap(win0) {
+        if(this.beingSwapped === false) return;
+
+        const win1 = this._draggedToSwap;
+
+        if(win0 === this._swapCandidate && this._swapVisible === false) {
+
+            clearTimeout(this._swapTimer);
+
+            this._swapCandidate = null;
+            win0.element.classList.remove("swap-hover");
+            
+        }
+    }
+    static registerDragToSwap(win0, mouseDown) {
+        if(this.beingSwapped === false) return;
+
+        const win1 = this._draggedToSwap;
+        clearTimeout(this._swapTimer);
+
+        const oldCandidate = this._swapCandidate;
+
+        if(win1 === win0) {
+            if(this._swapVisible === false) {
+                if(oldCandidate !== null) {
+                    oldCandidate.element.classList.remove("swap-hover");
+                }
+                this._swapCandidate = null;
+            }
+            return;
+        }
+
+        if(oldCandidate !== null && oldCandidate !== win0) {
+            if(this._swapVisible) {
+                this._swap(oldCandidate, win1);
+                this._swapVisible = false;
+            }
+            oldCandidate.element.classList.remove("swap-hover");
+        }
+
+        this._swapCandidate = win0;
+        
+    }
+    static attemptDragToSwap(win0, mouseDown) {
+        if(this.beingSwapped === false) return;
+
+        const win1 = this._draggedToSwap;
+
+        clearTimeout(this._swapTimer);
+
+        const representation = this._swapRepresentation;
+        const rStyle = representation.style;
+
+        const adjustSwapHover = (() => {
+            if(mouseDown) return;
+            const v = this._swapVisible;
+            win0.element.classList[v ? "remove" : "add"]("swap-hover");
+            win1.element.classList[v ? "add" : "remove"]("swap-hover");
+        }).bind(this);
+
+        if(win1 === win0) {
+            if(this._swapVisible === true) {
+                this._swap(win1, this._swapCandidate);
+                this._swapVisible = false;
+                rStyle.transform = "";
+                rStyle.opacity = "";
+            }
+        } else if(win0 === this._swapCandidate) {
+            adjustSwapHover();
+            this._swapTimer = setTimeout((() => {
+                if(win0 !== this._swapCandidate) return;
+                if(this._swapVisible === true) return;
+
+                const computed = getComputedStyle(representation);
+                const [cw, ch] = [Rem.fromString(computed.width), Rem.fromString(computed.height)];
+                const winRect = win0.rect();
+                let winw, winh;
+                winw = winRect.width;
+                winh = winRect.height;
+                if(win0.isMaximized(true)) {
+                    [winw, winh] = windowDimensions();
+                }
+                rStyle.transform = `scale(${winw/cw},${winh/ch})`;
+                rStyle.opacity = "0";
+
+                this._swap(win1, win0);
+                this._swapVisible = true;
+                adjustSwapHover();
+            }).bind(this), 750);
+        }
+    }
+    static _swap(win0, win1) {
+        // style: top, left, width, height
+        // swap in linked list and reset z indexes
+        // swap anchor, connections anchor
+        // swap connected to
+        // - visit every window that is connected to and change the id
+        
+        const [style0, style1] = [win0.element.style, win1.element.style];
+        [style0.top, style1.top] = [style1.top, style0.top];
+        [style0.left, style1.left] = [style1.left, style0.left];
+        [style0.width, style1.width] = [style1.width, style0.width];
+        [style0.height, style1.height] = [style1.height, style0.height];
+        
+        this.windows.swap(win0.id, win1.id);
+        this._resetZIndexes();
+        
+        [win0.anchor, win1.anchor] = [win1.anchor, win0.anchor];
+        [win0.connectionsAnchor, win1.connectionsAnchor] = [win1.connectionsAnchor, win0.connectionsAnchor];
+        
+        // Swap connectedTo
+        [win0.connectedTo, win1.connectedTo] = [win1.connectedTo, win0.connectedTo];
+        const connectedToHelper = (lhs, rhs) => {
+            for(const id of Object.keys(lhs.connectedTo)) {
+                const target = Window.windows.get(id);
+                delete target.connectedTo[rhs.id];
+                target.connectedTo[lhs.id] = null;
+            }
+            if(lhs.id in lhs.connectedTo) {
+                delete lhs.connectedTo[lhs.id];
+                lhs.connectedTo[rhs.id] = null;
+            }
+        };
+        connectedToHelper(win0, win1);
+        connectedToHelper(win1, win0);
+
+        // Maximized
+        {
+            const axes0 = win0.maximizedAxes();
+            const axes1 = win1.maximizedAxes();
+            win0.maximize(...axes1);
+            win1.maximize(...axes0);
+        }
+
+        // Focus
+        if(win0.isFocused()) win1.focus();
+        if(win1.isFocused()) win0.focus();
+    }
+    rect() {
+        const [ww, wh] = windowDimensions();
+        const fully = this.isMaximized(true);
+        const axes = this.maximizedAxes();
+        const sty_actual = this.element.style;
+        let [top, left, width, height] = [
+            Rem.fromString(sty_actual.top),
+            Rem.fromString(sty_actual.left),
+            Rem.fromString(sty_actual.width),
+            Rem.fromString(sty_actual.height)
+        ];
+        if(!fully && axes[0] === true) {
+            left = 0;
+            width = ww;
+        }
+        if(!fully && axes[1] === true) {
+            top = 0;
+            height = wh;
+        }
+        return {
+            top,
+            left,
+            bottom: top + height,
+            right: left + width,
+            width,
+            height,
+            x: left,
+            y: top
+        };
+    }
+    distanceTo(win1) {
+        const rect0 = this.rect();
+        const rect1 = win1.rect();
+
+        // tb distance
+        let tb = 0;
+        if(Rem.lte(rect1.bottom, rect0.top))      tb = rect0.top - rect1.bottom;
+        else if(Rem.gte(rect1.top, rect0.bottom)) tb = rect1.top - rect0.bottom;
+        else if(Rem.lt(rect1.bottom, rect0.bottom)
+            && Rem.gt(rect1.top, rect0.top))      tb = Math.max(rect0.top-rect1.top, rect1.bottom-rect0.bottom);
+        else if(Rem.gt(rect1.bottom, rect0.top))  tb = rect0.top - rect1.bottom;
+        else if(Rem.lt(rect1.top, rect0.bottom))  tb = rect1.top - rect0.bottom;
+        // lr distance
+        let lr = 0;
+        if(Rem.lte(rect1.right, rect0.left))      lr = rect0.left - rect1.right;
+        else if(Rem.gte(rect1.left, rect0.right)) lr = rect1.left - rect0.right;
+        else if(Rem.lt(rect1.right, rect0.right)
+            && Rem.gt(rect1.left, rect0.left))    lr = Math.max(rect0.left-rect1.left, rect1.right-rect0.right);
+        else if(Rem.gt(rect1.right, rect0.left))  lr = rect0.left - rect1.right;
+        else if(Rem.lt(rect1.left, rect0.right))  lr = rect1.left - rect0.right;
+
+        //
+        if(Rem.gte(tb, 0) && Rem.gte(lr, 0)) return Math.pow(tb*tb + lr*lr, 0.5);
+        else if(Rem.lte(tb, 0) && Rem.gte(lr, 0)) return lr;
+        else if(Rem.gte(tb, 0) && Rem.lte(lr, 0)) return tb;
+        
+        return Math.pow(tb*tb + lr*lr, 0.5) * -1;
+    }
+    connections() {
+        const visited = {};
+        const visit = (win0) => {
+            if(win0.id in visited) return;
+            visited[win0.id] = win0;
+            for(const id1 of Object.keys(win0.connectedTo)) {
+                visit(Window.windows.get(id1));
+            }
+        };
+        visit(this);
+        return visited;
+    }
+    
+    static AnchorTypes = Object.freeze({
+        // Order of preference
+        BOTH_END: 0,
+        LEFT_END: 1,
+        RIGHT_END: 2,
+        MIDDLE: 3
+    });
+    static anchorOf(rect) {
+        const [ww, wh] = windowDimensions();
+        let tb, lr, tbv, lrv;
+        const [tbr, lrr] = [rect.top/wh, rect.left/ww];
+        const [tbl, lrl] = [rect.height/wh, rect.width/ww];
+
+        if(Rem.lte(rect.x, 0) && Rem.gte(rect.right, ww))
+            {lr = this.AnchorTypes.BOTH_END;  lrv = (rect.x + rect.width/2) / ww;}
+        else if(Rem.lte(rect.x, 0))
+            {lr = this.AnchorTypes.LEFT_END;  lrv = rect.x;}
+        else if(Rem.gte(rect.right, ww))
+            {lr = this.AnchorTypes.RIGHT_END; lrv = ww - rect.right;}
+        else
+            {lr = this.AnchorTypes.MIDDLE;    lrv = (rect.x + rect.width/2) / ww;}
+
+        if(Rem.lte(rect.y, 0) && Rem.gte(rect.bottom, wh))
+            {tb = this.AnchorTypes.BOTH_END;  tbv = (rect.y + rect.height/2) / wh;}
+        else if(Rem.lte(rect.y, 0))
+            {tb = this.AnchorTypes.LEFT_END;  tbv = rect.y;}
+        else if(Rem.gte(rect.bottom, wh))
+            {tb = this.AnchorTypes.RIGHT_END; tbv = wh - rect.bottom;}
+        else
+            {tb = this.AnchorTypes.MIDDLE;    tbv = (rect.y + rect.height/2) / wh;}
+        
+        return {
+            TopBottom: {
+                Type: tb, Value: tbv, Ratio: tbr, Length: tbl
+            },
+            LeftRight: {
+                Type: lr, Value: lrv, Ratio: lrr, Length: lrl
+            }
+        };
+    }
+    static storeSerialization() {
+        const serialization = this.serialize();
+        localStorage.setItem("t3d-windows", serialization);
+    }
+    static serialize() {
+        const ary = [];
+        let n = this.windows.head;
+        while(n !== null) {
+            const v = n.value;
+            ary.push({
+                id: v.id,
+                top: Rem.fromString(v.element.style.top),
+                left: Rem.fromString(v.element.style.left),
+                width: Rem.fromString(v.element.style.width),
+                height: Rem.fromString(v.element.style.height),
+                connectedTo: v.connectedTo,
+                connectionsAnchor: v.connectionsAnchor,
+                xMaximized: v.element.matches(".maximized-xAxis"),
+                yMaximized: v.element.matches(".maximized-yAxis"),
+                anchor: v.anchor
+            });
+            n = n.prev;
+        }
+        return JSON.stringify(ary.reverse());
+    }
+    static interpretSerialization(serialization) {
+        const ary = JSON.parse(serialization);
+        for(let i = 0; i < ary.length; i++) {
+            const each = ary[i];
+            new Window({
+                top: each.top,
+                left: each.left,
+                width: each.width,
+                height: each.height,
+            }, {
+                id: each.id,
+                connectedTo: each.connectedTo,
+                connectionsAnchor: each.connectionsAnchor,
+                xMaximized: each.xMaximized,
+                yMaximized: each.yMaximized,
+                anchor: each.anchor
+            });
+        }
+    }
+    static _resizeHandler = null;
+    static _minWidth = 9;
+    static _minHeight = 6;
+    static _stopResize = null;
+    static deadZoneThreshold = 2;
+    static stopResize() {
+        if(this._stopResize !== null) {
+            this._stopResize();
+            this._stopResize = null;
+        }
+    }
+    static _startResize(win, tbWise, lrWise) {
+
+        disableIframes();
+
+        // tbWise: 1=top, 0=none, -1=bottom
+        // lrWise: 1=left, 0=none, -1=right
+        // tbWise 0, lrWise 0 = moving window
+        const el = win.element;
+        const rect0 = win.rect();
+        const [mouseX0, mouseY0] = [mouseX, mouseY];
+        const width0 = Rem.fromString(el.style.width);
+        const height0 = Rem.fromString(el.style.height);
+        let top0 = rect0.top; // Get the shown position
+        if(win.isMaximized(true)) top0 = 0;
+        let left0 = rect0.left;
+        const left0_alt = mouseX0 - width0/2;
+        const connectedTo0 = {...win.connectedTo};
+        const snapDist = Rem.fromPixel(10);
+        const snapDgnDist = 1.41 * snapDist * 3; // Diagnoal distance is more generous
+        const snapHelper = (origin, dests) => {
+            // dir: -1=left or top, 1=right or bottom
+            let ret = [false];
+            for(let i = 0; i < dests.length; i++) {
+                const dest = dests[i].value;
+                const owner = dests[i].owner;
+                if(owner !== null && win.distanceTo(owner) > snapDgnDist) continue;
+                if(origin >= dest - snapDist && origin <= dest + snapDist)
+                    ret = [true, dest - origin, owner];
+            }
+            return ret;
+        };
+        const tbDests = [];
+        const lrDests = [];
+        const [ww, wh] = windowDimensions();
+        for(const win1 of this.windows.values()) {
+            if(win1 === win) continue;
+            const rect1 = win1.rect();
+            const top1 = rect1.top;
+            const left1 = rect1.left;
+            tbDests.push({value: top1, owner: win1}, {value: top1 + rect1.height, owner: win1});
+            lrDests.push({value: left1, owner: win1}, {value: left1 + rect1.width, owner: win1});
+        }
+        const tDests = [...tbDests, {value: 0, owner: null}]; // Border snapping takes priority
+        const bDests = [...tbDests, {value: wh, owner: null}];
+        const lDests = [...lrDests, {value: 0, owner: null}];
+        const rDests = [...lrDests, {value: ww, owner: null}];
+
+        const ignoreMaximizedThreshold = Rem.fromPixel(10);
+
+        const move = tbWise === 0 && lrWise === 0;
+        const tok = move || tbWise === 1;
+        const lok = tbWise === 0 ? lrWise >= 0 : lrWise === 1;
+        const wok = lrWise !== 0;
+        const hok = tbWise !== 0;
+
+        // class
+        el.classList.add(move ? "in-move" : "in-resize");
+        document.body.classList.add("window-in-move");
+
+        // Show maximized window
+        if(win !== this.fullyMaximizedWindow) this.showMaximizedRepresentation();
+
+        // Show current connections
+        Window.showConnectionsIndicator(win.connections());
+
+        let connectCandidate = null; // other window to stick to
+        let changed = false;
+        let farthest = 0;
+        this.stopResize();
+        this._stopResize = (() => {
+
+            win.element.classList.remove("in-move", "in-resize");
+            document.body.classList.remove("window-in-move");
+
+            if(this._resizeHandler !== null) {
+                clearInterval(this._resizeHandler);
+                this._resizeHandler = null;
+            }
+
+            //
+            Window.hideMaximizedRepresentation();
+            Window.hideConnectionsIndicator();
+            
+            if(changed === true) {
+                // Anchor
+                const rect1 = win.rect();
+                win.anchor = Window.anchorOf(rect1);
+
+                Window.evaluateConnectionsAnchor();
+
+                win.dispatchEvent(new Event("change"));
+            }
+
+        }).bind(this);
+        this._resizeHandler = setInterval((() => {
+            const dx = mouseX - mouseX0;
+            const dy = mouseY - mouseY0;
+            const d = Math.pow(dx*dx + dy*dy, 0.5);
+            changed = changed || (dx !== 0 || dy !== 0);
+            if(!changed) return;
+            farthest = Math.max(farthest, d);
+            if(win.isMaximized(false)) {
+                const maxXAxis = win.element.matches(".maximized-xAxis");
+                const maxYAxis = win.element.matches(".maximized-yAxis");
+                if((maxXAxis && wok) || (maxYAxis && hok)) {
+                    if(farthest <= ignoreMaximizedThreshold) return;
+                    if(maxXAxis) left0 = left0_alt;
+                    win.unmaximize();
+                } else if((maxXAxis && lok) || (maxYAxis && tok)) {
+                    if(maxXAxis ? (Math.abs(dx) > ignoreMaximizedThreshold) : (Math.abs(dy) > ignoreMaximizedThreshold)) {
+                        if(maxXAxis) left0 = left0_alt;
+                        win.unmaximize();
+                    }
+                }
+            }
+            // TODO: xAxis maximized left
+
+            // 0,0 = t,l only snap t,l
+            // 1,0 = t,h only snap t,h
+            // -1, 0 = h only snap h
+            // 0,1 = l,w only snap l,w
+            // 0,-1 = w only
+            // 1,1 = t,h,w,l
+            // -1,-1 = h,w
+            // (tbWise === 1 or 0 && lrWise === 0) lrWise !== 0 && tbWise === 1
+
+            // tbWise === 0 && lrWise !== -1 => l
+            // tbWise !== 0 => h
+            // lrWise === 0 && tbWise !== -1 => t
+            // lrWise !== 0 => w
+            let [top1, left1, width1, height1] = [top0, left0, width0, height0];
+
+            top1 += (tok || move) ? dy : 0;
+            left1 += (lok || move) ? dx : 0;
+            width1 += wok ? (lrWise !== -1 ? -dx : dx) : 0;
+            height1 += hok ? (tbWise !== -1 ? -dy : dy) : 0;
+
+            // Out of boundary check
+            if(top1 > wh - Window.deadZoneThreshold) {
+                height1 += hok ? ((wh - Window.deadZoneThreshold) - top1) : 0;
+                top1 = wh - Window.deadZoneThreshold;
+            }
+            if(top1 < 0) {
+                height1 += hok ? top1 : 0;
+                top1 = 0;
+            }
+            if(left1 > ww - Window.deadZoneThreshold) {
+                width1 += wok ? ((ww - Window.deadZoneThreshold) - left1) : 0;
+                left1 = ww - Window.deadZoneThreshold;
+            }
+            if(left1 + width1 < Window.deadZoneThreshold) {
+                width1 += wok ? (Window.deadZoneThreshold - left1) : 0;
+                left1 = Window.deadZoneThreshold - width1;
+            }
+
+            // Snapping
+            connectCandidate = null;
+            const ratioSnapThreshold = 1; /* REM */
+            const ratioUnitLength = (height1 + width1) / (16+9);
+            const snapRatio = 16 / 9;
+            const ratioLowerBound = (ratioUnitLength*16 - ratioSnapThreshold) / (ratioUnitLength*9);
+            const ratioUpperBound = (ratioUnitLength*16 + ratioSnapThreshold) / (ratioUnitLength*9);
+            const ratio1 = width1 / height1;
+            if(!(ratio1 <= ratioUpperBound
+                && ratio1 >= ratioLowerBound
+                && !move)) {
+
+                // Snapping to nearby windows takes priority
+                // TODO connect to every window whose distance-to is 0
+                if(tok || hok) {
+                    const [ts, td, town] = snapHelper(top1, tDests);
+                    const [bs, bd, bown] = snapHelper(top1 + height1, bDests);
+                    let d = 0;
+                    // Top takes priority
+                    if(bs && (move || tbWise === -1)) {d = bd; connectCandidate = bown;} // in-move or tbwise -1
+                    if(ts && (move || tbWise === 1)) {d = td; connectCandidate = town || connectCandidate;}
+                    if(tok) top1 += d;
+                    if(hok) height1 += tok ? -d : d;
+                }
+                if(lok || wok) {
+                    const [ls, ld, lown] = snapHelper(left1, lDests);
+                    const [rs, rd, rown] = snapHelper(left1 + width1, rDests);
+                    let d = 0;
+                    // Left takes priority
+                    if(rs && (move || lrWise === -1)) {d = rd; connectCandidate = rown || connectCandidate;}
+                    if(ls && (move || lrWise === 1)) {d = ld; connectCandidate = lown || connectCandidate;}
+                    if(lok) left1 += d;
+                    if(wok) width1 += lok ? -d : d;
+                }
+            } else {
+                // Ratio snapping has less priority
+
+                // Check which side to use as standard
+                if(wok) {
+                    // Height is standard
+                    const oldw = width1;
+                    width1 = height1 * snapRatio;
+                    if(lok) left1 += oldw - width1;
+                } else {
+                    const oldh = height1;
+                    height1 = width1 / snapRatio;
+                    if(tok) top1 += oldh - height1;
+                }
+            }
+       
+            el.style.top = Rem.toString(top1);
+            el.style.left = Rem.toString(left1);
+            el.style.width = Rem.toString(width1);
+            el.style.height = Rem.toString(height1);
+
+            // Connections
+            for(const id1 of Object.keys({...connectedTo0, ...win.connectedTo})) {
+                const win1 = Window.windows.get(id1);
+                if(Rem.eq(win.distanceTo(win1), 0)) {
+                    win.connectedTo[win1.id] = null;
+                    win1.connectedTo[win.id] = null;
+                } else {
+                    delete win.connectedTo[win1.id];
+                    delete win1.connectedTo[win.id];
+                }
+            }
+            if(connectCandidate !== null && Rem.eq(connectCandidate.distanceTo(win), 0)) {
+                win.connectedTo[connectCandidate.id] = null;
+            }
+            if(Object.keys(win.connectedTo).length > 0) {
+                Window.showConnectionsIndicator(win.connections());
+            } else {
+                Window.hideConnectionsIndicator();
+            }
+        }).bind(this), 16);
+    }
+    static evaluateConnectionsAnchor() {
+        let visited = {};
+        for(const win1 of this.windows.values()) {
+            if(win1.id in visited) continue;
+            const connections = win1.connections();
+            visited = {...visited, ...connections};
+            const rect1 = this.connectionsRect(connections);
+            const anchor1 = this.anchorOf(rect1);
+            for(const each of Object.values(connections)) {
+                each.connectionsAnchor = anchor1;
+            }
+        }
+    }
+    static showConnectionsIndicator(connections) {
+        if(Object.keys(connections).length === 1) return;
+        const rect = this.connectionsRect(connections);
+        const gi = document.getElementById("window-connections-indicator");
+        gi.style.top = Rem.toString(rect.top);
+        gi.style.left = Rem.toString(rect.left);
+        gi.style.width = Rem.toString(rect.width);
+        gi.style.height = Rem.toString(rect.height);
+        gi.style.display = "block";
+    }
+    static hideConnectionsIndicator() {
+        const gi = document.getElementById("window-connections-indicator");
+        gi.style.display = "";
+    }
+    static showMaximizedRepresentation() {
+        const mr = document.getElementById("window-fully-maximized-representation");
+        const mw = this.fullyMaximizedWindow;
+        if(mw !== null) {
+            const s0 = mr.style;
+            const s1 = mw.element.style;
+            s0.top = s1.top;
+            s0.left = s1.left;
+            s0.width = s1.width;
+            s0.height = s1.height;
+            s0.zIndex = s1.zIndex;
+            s0.display = "block";
+
+            mr.querySelector(".window-title-text").textContent = mw.element.querySelector(".window-title-text").textContent;
+        }
+    }
+    static hideMaximizedRepresentation() {
+        const mr = document.getElementById("window-fully-maximized-representation");
+        mr.style.display = "";
+    }
+    static connectionsRect(connections) {
+        const values = Object.values(connections);
+        const rects = values.map(v => v.rect());
+        const rect = {
+            top: Math.min(...rects.map(v => v.top)),
+            left: Math.min(...rects.map(v => v.left)),
+            bottom: Math.max(...rects.map(v => v.bottom)),
+            right: Math.max(...rects.map(v => v.right))
+        };
+        rect.x = rect.left;
+        rect.y = rect.top;
+        rect.width = rect.right - rect.left;
+        rect.height = rect.bottom - rect.top;
+        return rect;
+    }
+}
+document.addEventListener("mouseup", () => {
+    Window.stopDragToSwap();
+    Window.stopResize();
+});
+let windowResizeTimeout = null;
+const windowDimensions = () => {
+    return [Rem.fromPixel(window.innerWidth), Rem.fromPixel(window.innerHeight)];
+};
+window.addEventListener("resize", () => {
+    clearTimeout(windowResizeTimeout);
+    windowResizeTimeout = setTimeout(() => {
+        clearTimeout(windowResizeTimeout);
+
+        const [ww1, wh1] = windowDimensions();
+        let repositioned = {};
+        for(const win0 of Window.windows.values()) {
+            if(win0.id in repositioned) continue;
+
+            // TODO fix bug where windows get wrongly respositioned
+            //      when opening page from a differently sized tab
+
+            const connections = win0.connections();
+            repositioned = {...repositioned, ...connections};
+            const anchor = win0.connectionsAnchor;
+            const c_rect = Window.connectionsRect(connections);
+            const values = Object.values(connections);
+            const [c_tbt, c_lrt] = [anchor.TopBottom.Type, anchor.LeftRight.Type];
+            const [c_tbv, c_lrv] = [anchor.TopBottom.Value, anchor.LeftRight.Value];
+
+            const BOTH_BOTH = c_tbt === 0 && c_lrt === 0;
+            const BOTH_EITHER = c_tbt+c_lrt >= 1 && c_tbt+c_lrt <= 2 && c_tbt*c_lrt === 0;
+            const BOTH_MIDDLE = c_tbt+c_lrt === 3 && c_tbt*c_lrt === 0;
+            const EITHER_EITHER = c_tbt < 3 && c_lrt < 3 && c_tbt*c_lrt > 0;
+            const EITHER_MIDDLE = (c_tbt === 3 || c_lrt === 3) && c_tbt*c_lrt > 0 && c_tbt*c_lrt < 9;
+            const MIDDLE_MIDDLE = c_tbt*c_lrt === 9;
+
+            // BOTH-BOTH = scale up/down
+            // BOTH-EITHER = push all to either end + align except for BOTH ones
+            // BOTH-MIDDLE = put them in the middle + align except for BOTH ones
+            // EITHER-EITHER = stick it to that end
+            // EITHER-MIDDLE = stick to end and put middle
+            // MIDDLE-MIDDLE = middle
+
+            const [c_top, c_left, c_width, c_height] = [
+                c_rect.top, c_rect.left, c_rect.width, c_rect.height 
+            ];
+            const [c_mtr0, c_mlr0] = [c_tbv, c_lrv];
+            const [c_mtr1, c_mlr1] = [(c_top+c_height/2)/wh1, (c_left+c_width/2)/ww1]; // top from middle, left from middle *ratio*
+            let [c_dmt, c_dml] = [(c_mtr0-c_mtr1)*wh1, (c_mlr0-c_mlr1)*ww1]; // connections delta middle top, middle left
+            if(c_dmt + c_top < 0) c_dmt = -c_top;
+            if(c_dml + c_left < 0) c_dml = -c_left;
+            const [c_db, c_dr] = [(wh1-c_rect.bottom)-c_tbv, (ww1-c_rect.right)-c_lrv]; // bottom, right diff
+            
+            for(const win1 of values) {
+                const style = win1.element.style;
+                const top = Rem.fromString(style.top);
+                const left = Rem.fromString(style.left);
+                const width = Rem.fromString(style.width);
+                const height = Rem.fromString(style.height);
+                const [tbl, lrl] = [win1.anchor.TopBottom.Length, win1.anchor.LeftRight.Length];
+                const [tbr, lrr] = [win1.anchor.TopBottom.Ratio, win1.anchor.LeftRight.Ratio];
+
+                // TODO simplify later
+                if(BOTH_BOTH || BOTH_EITHER || BOTH_MIDDLE) {
+                    style.top = Rem.toString(tbr * wh1);
+                    style.left = Rem.toString(lrr * ww1);
+                    style.width = Rem.toString(lrl * ww1);
+                    style.height = Rem.toString(tbl * wh1);
+                } else if(false/*BOTH_EITHER || BOTH_MIDDLE*/) {
+                    if(c_tbt === 2) style.top = Rem.toString(top - c_db);
+                    else if(c_tbt === 3) style.top = Rem.toString(top + c_dmt);
+                    else if(c_tbt === 0) {
+                        style.top = Rem.toString(tbr * wh1);
+                        style.height = Rem.toString(tbl * wh1);
+                    }
+                    if(c_lrt === 2) style.left = Rem.toString(left - c_dr);
+                    else if(c_lrt === 3) style.left = Rem.toString(left + c_dml);
+                    else if(c_lrt === 0) {
+                        style.left = Rem.toString(lrr * ww1);
+                        style.width = Rem.toString(lrl * ww1);
+                    }
+                } else if(EITHER_EITHER || EITHER_MIDDLE || MIDDLE_MIDDLE) {
+                    if(c_tbt === 2) style.top = Rem.toString(top + c_db);
+                    else if(c_tbt === 3) style.top = Rem.toString(top + c_dmt);
+                    if(c_lrt === 2) style.left = Rem.toString(left + c_dr);
+                    else if(c_lrt === 3) style.left = Rem.toString(left + c_dml);
+                }
+            }
+        }
+    }, 50);
+});
+
+const _getMatchingParent = (element, parent, inclusive) => {
+    const f = (typeof parent === "string")
+        ? rhs => rhs.matches && rhs.matches(parent)
+        : rhs => rhs === parent;
+    if(inclusive && f(element)) return element;
+    let n = element.parentNode;
+    while(n !== null) {
+        if(f(n)) return n;
+        n = n.parentNode;
+    }
+    return null;
+};
+const getParentInclusive = (element, parent) => _getMatchingParent(element, parent, true);
+const isContainedIn = (element, parent) => _getMatchingParent(element, parent, true) !== null;
+const isContainedInSelector = (element, selector) => _getMatchingParent(element, selector, true) !== null;
+
+// Menu
+const ctxMenu = document.getElementById("context-menu");
+const ctxItems = document.getElementById("context-menu-items");
+let ctxMenuTarget = null;
+const modals = document.querySelectorAll(".modal");
+const modalAddStream = document.getElementById("modal-add-stream");
+const modalWindowOptions = document.getElementById("modal-window-options");
+const btnWinMute = document.getElementById("btn-window-mute");
+const btnWinUnmute = document.getElementById("btn-window-unmute");
+const btnWinOptions = document.getElementById("btn-window-options");
+const btnWinOpenChat = document.getElementById("btn-window-open-chat");
+const btnWinSwapWith = document.getElementById("btn-window-swap-with");
+const btnWinSendToBack = document.getElementById("btn-window-send-to-back");
+const btnWinClose = document.getElementById("btn-window-close");
+const btnAddStream = document.getElementById("btn-add-stream");
+const btnFullscreen = document.getElementById("btn-fullscreen");
+const btnExitFullscreen = document.getElementById("btn-exit-fullscreen");
+const btnGitHub = document.getElementById("btn-github");
+const btnDisableIframes = document.getElementById("btn-disable-iframes");
+document.addEventListener("contextmenu", (ev) => {
+    ev.preventDefault();
+
+    Window.stopDragToSwap();
+
+    ctxMenu.style.display = "block";
+
+    const winEl = getParentInclusive(ev.target, ".window");
+    const win = winEl !== null ? Window.windows.get(winEl.id) : null;
+    ctxMenu.classList[win !== null ? "add" : "remove"]("for-window");
+    ctxMenuTarget = win;
+
+    if(win !== null) {
+        ctxMenu.setAttribute("data-for", win.id);
+        ctxMenu.classList[win.isMaximized(true) ? "add" : "remove"]("for-fully-maximized-window");
+
+        const player = twitchPlayers[win.id] || null;
+        ctxMenu.classList[player !== null ? "add" : "remove"]("for-player");
+        if(player !== null) {
+            ctxMenu.classList[player.getMuted() ? "add" : "remove"]("for-muted-player");
+        }
+    } else {
+        ctxMenu.removeAttribute("data-for");
+    }
+
+    // Position
+    const [ww, wh] = windowDimensions();
+    const rect = ctxMenu.getBoundingClientRect();
+    const [cw, ch] = [Rem.fromPixel(rect.width), Rem.fromPixel(rect.height)];
+    const six = Rem.fromPixel(6);
+    let top = mouseY - six;
+    let left = mouseX + six;
+    if(top < six) top = six;
+    else if(top + ch > wh - six) top = wh - ch - six;
+    if(left < six) left = six;
+    else if(left + cw > ww) left = mouseX - cw - six;
+
+    ctxMenu.style.top = Rem.toString(top);
+    ctxMenu.style.left = Rem.toString(left);
+});
+let docLastMouseDownOn = null;
+document.addEventListener("mousedown", (ev) => {
+    disableIframes();
+    const t = ev.target;
+    docLastMouseDownOn = t;
+
+    if(!isContainedIn(t, ctxMenu)) {
+        ctxMenu.style.display = "";
+    }
+});
+document.addEventListener("mouseup", (ev) => {
+    const t = ev.target;
+
+    // Without this user who dragged stuff in textbox can be annoyed by modal getting closed
+    if(docLastMouseDownOn === t
+        && !isContainedInSelector(t, ".modal-content")
+        && isContainedInSelector(t, ".modal")) {
+        for(const modal of modals.values()) {
+            closeModal(modal);
+        }
+    }
+});
+ctxItems.addEventListener("mouseup", (ev) => {
+    ctxMenu.style.display = "";
+});
+btnWinMute.addEventListener("mouseup", (ev) => {
+    twitchPlayers[ctxMenuTarget.id].setMuted(true);
+});
+btnWinUnmute.addEventListener("mouseup", (ev) => {
+    twitchPlayers[ctxMenuTarget.id].setMuted(false);
+});
+btnWinOptions.addEventListener("mouseup", (ev) => {
+    modalWindowOptions.setAttribute("data-for", ctxMenu.getAttribute("data-for"));
+    openModal(modalWindowOptions);
+});
+btnWinOpenChat.addEventListener("mouseup", (ev) => {
+    const [top, left] = [
+        Rem.fromString(ctxMenu.style.top),
+        Rem.fromString(ctxMenu.style.left)
+    ];
+    const chatWin = new Window({
+        top,
+        left,
+        width: 22,
+        height: 30
+    });
+    addTwitchComponent(chatWin, twitchComponents[ctxMenuTarget.id].channel, true);
+
+    Window.storeSerialization();
+    storeTwitchSerialization();
+});
+btnWinSwapWith.addEventListener("mouseup", ev => {
+    ev.stopPropagation();
+    Window.startDragToSwap(ctxMenuTarget, true);
+    ctxMenu.style.display = "";
+});
+btnWinSendToBack.addEventListener("mouseup", (ev) => {
+    ctxMenuTarget.sendToBack();
+});
+btnWinClose.addEventListener("click", (ev) => { // click for close button
+    ctxMenuTarget.close();
+});
+btnAddStream.addEventListener("mouseup", (ev) => {
+    openModal(modalAddStream);
+});
+btnFullscreen.addEventListener("mouseup", (ev) => {
+    document.body.requestFullscreen();
+});
+btnExitFullscreen.addEventListener("mouseup", (ev) => {
+    document.exitFullscreen();
+});
+btnGitHub.addEventListener("mouseup", (ev) => {
+    window.open("https://github.com/hjjg200/twitch3d/issues", "_blank");
+});
+document.addEventListener("fullscreenchange", (ev) => {
+    document.body.classList[document.fullscreenElement === null ? "remove" : "add"]("fullscreen");
+});
+const openModal = (modal) => {
+    if(modal.matches(".modal") === false) return;
+    modal.classList.add("open");
+    modal.dispatchEvent(new Event("modalopen"));
+};
+const closeModal = (modal) => {
+    if(modal.matches(".modal") === false) return;
+    modal.classList.remove("open");
+    modal.dispatchEvent(new Event("modalclose"));
+};
+
+{ // Add Stream Modal
+    const btnOK = modalAddStream.querySelector(".button-ok");
+    const btnCancel = modalAddStream.querySelector(".button-cancel");
+    const streamer = modalAddStream.querySelector("#input-streamer");
+    const withChat = modalAddStream.querySelector("#input-with-chat");
+    let [top, left] = [0, 0]; // When modal gets open
+    const addStreamHelper = () => {
+        if(streamer.value === "") {
+        
+            return;
+        }
+        const channel = streamer.value;
+        const streamWin = new Window({
+            top,
+            left,
+            width: 32,
+            height: 18
+        });
+        addTwitchComponent(streamWin, channel, false);
+        if(withChat.checked === true) {
+            const chatWin = new Window({
+                top: top + 2,
+                left: left + 2,
+                width: 22,
+                height: 30
+            });
+            addTwitchComponent(chatWin, channel, true);
+        }
+        // Reset
+        streamer.value = "";
+        withChat.checked = false;
+        closeModal(modalAddStream);
+    };
+    streamer.addEventListener("input", (ev) => {
+        let val = streamer.value;
+        if(val.indexOf("twitch.tv/") !== -1) {
+            streamer.value = val.split("twitch.tv/").reverse()[0].split(/[?/]/g)[0];
+        }
+    });
+    modalAddStream.addEventListener("modalclose", ev => {
+        Window.storeSerialization();
+        storeTwitchSerialization();
+    });
+    modalAddStream.addEventListener("modalopen", (ev) => {
+        [top, left] = [
+            Rem.fromString(ctxMenu.style.top),
+            Rem.fromString(ctxMenu.style.left)
+        ];
+        streamer.focus();
+    });
+    modalAddStream.addEventListener("keyup", (ev) => {
+        if(ev.key === "Enter") addStreamHelper();
+    });
+    btnOK.addEventListener("mouseup", addStreamHelper);
+    btnCancel.addEventListener("mouseup", (ev) => {
+        closeModal(modalAddStream);
+    });
+}
+
+{ // Window Options Modal
+    const btnOK = modalWindowOptions.querySelector(".button-ok");
+    const btnCancel = modalWindowOptions.querySelector(".button-cancel");
+    const rangeVolume = document.getElementById("range-volume");
+    const rangeVolumeMaximized = document.getElementById("range-volume-maximized");
+    const dropdownQuality = createDropdown("dropdown-quality");
+    const dropdownQualityMaximized = createDropdown("dropdown-quality-maximized");
+    const alternateCheck = document.getElementById("checkbox-alternate-maximized");
+    const inputsMaximized = document.getElementById("window-options-maximized-inputs");
+    let selectedWindow = null;
+    let forCancel = {};
+
+    rangeVolume.addEventListener("input", () => {
+        const v = parseInt(rangeVolume.value) / 100;
+        twitchComponents[selectedWindow.id].options.volume = v;
+        if(alternateCheck.checked === false) matchBoth(true, false);
+
+        if(selectedWindow.isMaximized(true)) return;
+
+        twitchPlayers[selectedWindow.id].setVolume(v);
+    });
+
+    rangeVolumeMaximized.addEventListener("input", () => {
+        const v = parseInt(rangeVolumeMaximized.value) / 100;
+        twitchComponents[selectedWindow.id].options.maximizedVolume = v;
+
+        if(selectedWindow.isMaximized(true) === false) return;
+
+        twitchPlayers[selectedWindow.id].setVolume(v);
+    });
+
+    dropdownQuality.addEventListener("change", () => {
+        const q = dropdownQuality.value;
+        twitchComponents[selectedWindow.id].options.quality = q;
+        if(alternateCheck.checked === false) matchBoth(false, true);
+
+        if(selectedWindow.isMaximized(true)) return;
+
+        twitchPlayers[selectedWindow.id].setQuality(q);
+    });
+
+    dropdownQualityMaximized.addEventListener("change", () => {
+        const q = dropdownQualityMaximized.value;
+        twitchComponents[selectedWindow.id].options.maximizedQuality = q;
+
+        if(selectedWindow.isMaximized(true) === false) return;
+
+        twitchPlayers[selectedWindow.id].setQuality(q);
+    });
+
+    const matchBoth = (v, q) => {
+        if(v) {
+            rangeVolumeMaximized.value = rangeVolume.value;
+            rangeVolumeMaximized.dispatchEvent(new Event('input'));
+        }
+
+        if(q) dropdownQualityMaximized.setItemIndex(dropdownQualityMaximized.indexOfValue(dropdownQuality.value));
+    };
+
+    alternateCheck.addEventListener("input", () => {
+        inputsMaximized.classList[alternateCheck.checked ? "remove" : "add"]("disabled");
+        if(alternateCheck.checked === false) matchBoth(true, true);
+    });
+
+    modalWindowOptions.addEventListener("modalopen", () => {
+        selectedWindow = Window.windows.get(modalWindowOptions.getAttribute("data-for"));
+        const win = selectedWindow;
+        const player = twitchPlayers[win.id];
+        const qualities = player.getQualities().filter(v => v.group !== "auto" && v.group !== "chunked");
+        const quality = twitchComponents[win.id].options.quality;
+        const maximizedQuality = twitchComponents[win.id].options.maximizedQuality;
+        const volume = twitchComponents[win.id].options.volume;
+        const maximizedVolume = twitchComponents[win.id].options.maximizedVolume;
+
+        forCancel = {quality, volume, maximizedQuality, maximizedVolume};
+
+        const qitems = [
+            {name: locales[lang]["%quality-auto"], value: "auto"},
+            {name: locales[lang]["%quality-source"], value: "chunked"}
+        ];
+
+        for(const quality of qualities) {
+            qitems.push({name: quality.name, value: quality.group});
+        }
+        if(qualities.length === 0) {
+            if(maximizedQuality !== "auto" && maximizedQuality !== "chunked")
+                qitems.push({name: maximizedQuality, value: maximizedQuality});
+            if(quality !== "auto" && quality !== "chunked")
+                qitems.push({name: quality, value: quality});
+        }
+
+        const qmaxitems = [];
+        for(const each of qitems) qmaxitems.push({...each});
+
+        for(const each of qitems) each.selected = each.value === quality;
+        for(const each of qmaxitems) each.selected = each.value === maximizedQuality;
+
+        dropdownQuality.removeAllItems();
+        dropdownQualityMaximized.removeAllItems();
+
+        dropdownQuality.addItems(...qitems);
+        dropdownQualityMaximized.addItems(...qmaxitems);
+
+        rangeVolume.value = Math.round(volume * 100);
+        rangeVolumeMaximized.value = Math.round(maximizedVolume * 100);
+        alternateCheck.checked = (quality !== maximizedQuality || volume !== maximizedVolume);
+
+        rangeVolume.dispatchEvent(new Event('input'));
+        rangeVolumeMaximized.dispatchEvent(new Event('input'));
+        alternateCheck.dispatchEvent(new Event('input'));
+    });
+
+    modalWindowOptions.addEventListener("modalclose", (ev) => {
+        storeTwitchSerialization();
+    });
+
+    btnOK.addEventListener("mouseup", (ev) => {
+        closeModal(modalWindowOptions);
+    });
+    btnCancel.addEventListener("mouseup", (ev) => {
+        const player = twitchPlayers[selectedWindow.id];
+        twitchComponents[selectedWindow.id].options = forCancel;
+        if(selectedWindow.isMaximized(true)) {
+            player.setVolume(forCancel.maximizedVolume);
+            player.setQuality(forCancel.maximizedQuality);
+        } else {
+            player.setVolume(forCancel.volume);
+            player.setQuality(forCancel.quality);
+        }
+        closeModal(modalWindowOptions);
+    });
+}
+
+let iframeEnabledWindow = null;
+const disableIframes = () => {
+
+    if(iframeEnabledWindow !== null) {
+        const win = iframeEnabledWindow;
+        const id = win.id;
+        const player = twitchPlayers[id];
+        if(player !== undefined && player.online === true) {
+            const maximized = win.isMaximized(true);
+            const options = twitchComponents[id].options;
+            if(maximized) {
+                options.maximizedVolume = player.getVolume();
+                options.maximizedQuality = player.getQuality();
+            } else {
+                options.volume = player.getVolume();
+                options.quality = player.getQuality();
+            }
+        }
+        iframeEnabledWindow = null;
+        storeTwitchSerialization();
+    }
+
+    document.body.classList.remove("iframe-enabled");
+
+    const winEls = document.querySelectorAll(".window.iframe-enabled");
+    for(const el of winEls.values()) {
+        el.classList.remove("iframe-enabled");
+        el.querySelector("iframe").blur();
+    }
+}
+
+const enableIframe = (win) => {
+    disableIframes();
+
+    const [ww, wh] = windowDimensions();
+    const maximized = win.isMaximized(true);
+    const rect = win.rect();
+    const width = maximized ? ww : rect.width;
+    btnDisableIframes.style.top = Rem.toString(maximized ? 0 : rect.top);
+    btnDisableIframes.style.left = Rem.toString((maximized ? 0 : rect.left) + width / 2);
+    btnDisableIframes.classList[width < 27 ? "add" : "remove"]("small");
+
+    document.body.classList.add("iframe-enabled");
+
+    iframeEnabledWindow = win;
+    win.contentElement.querySelector("iframe").focus();
+    win.element.classList.add("iframe-enabled");
+};
+
+btnDisableIframes.addEventListener("click", (ev) => {
+    disableIframes();
+});
+
+// Twitch methods
+const defaultTwitchOptions = {
+    volume: 0.33,
+    quality: "auto",
+    maximizedVolume: 1,
+    maximizedQuality: "chunked"
+};
+const twitchComponents = {};
+const twitchPlayers = {};
+const twitchQualityValueFromString = (quality) => {
+    quality = quality.trim();
+    if(quality === "auto") return 0;
+    else if(quality === "chunked") return 60 * 1080 * 100;
+    
+    const [h, fps] = quality.split("p").map(v => parseInt(v));
+    return h*(fps || 30);
+};
+const twtichValueOfQuality = (quality) => {
+    if(quality.group === "auto") return 0;
+    else if(quality.group === "chunked") return 60 * 1080 * 100;
+    return quality.framerate*quality.height;
+};
+const twitchQualityComparator = (lhs, rhs) => {
+    return twtichValueOfQuality(lhs) - twtichValueOfQuality(rhs);
+};
+const storeTwitchSerialization = () => {
+    localStorage.setItem("t3d-twitch", JSON.stringify(twitchComponents));
+};
+const interpretTwitchComponents = (serialization) => {
+    const obj = JSON.parse(serialization);
+    for(const key of Object.keys(obj)) {
+        const each = obj[key];
+        const win = Window.windows.get(key);
+        if(win === null) {
+            continue;
+        }
+        addTwitchComponent(win, each.channel, each.chat, each.options);
+    }
+};
+const addTwitchComponent = (win, channel, chat, options) => {
+    win.setTitle(`${channel}`);
+    options = {...defaultTwitchOptions, ...options};
+    if(!chat) {
+        const hostname = window.location.hostname;
+        const generaldomain = hostname.split('.').slice(-2).join('.'); 
+        const player = new Twitch.Player(win.contentElement.id, {
+            channel,
+            parent: [hostname, generaldomain]
+        });
+        player.setOptions = () => {
+            if(document.body.matches(".window-in-swap")) return;
+
+            const opts = twitchComponents[win.id].options;
+            player.setVolume(win.isMaximized(true) ? opts.maximizedVolume : opts.volume);
+            player.setQuality(win.isMaximized(true) ? opts.maximizedQuality : opts.quality);
+        };
+        twitchPlayers[win.id] = player;
+        player.addEventListener(Twitch.Player.ONLINE, () => {
+            win.element.classList.remove("twitch-offline");
+            player.online = true;
+            player.setOptions();
+        });
+        player.addEventListener(Twitch.Player.PLAY, () => {
+            //win.element.classList.remove("twitch-offline");
+        });
+        player.addEventListener(Twitch.Player.OFFLINE, () => {
+            win.element.classList.add("twitch-offline");
+            player.online = false;
+        });
+        player._setMuted = player.setMuted;
+        player._setVolume = player.setVolume;
+        player._setQuality = player.setQuality;
+        player.setMuted = (muted) => {
+            const muted0 = player.getMuted();
+            if(muted0 === muted) return;
+            player._setMuted(muted);
+            // TODO / ISSUE
+            // Don't know why but setMuted takes ~15 milliseconds to make effect while API docs
+            // say that it is a synchronous call. It seems it has something to do with the
+            // postMessage handling on the twitch.tv iframe side
+            // This is the reason for setTimeout with 300 delay at the moment
+            setTimeout(() => {
+                if(muted === false && player.getMuted() === true) {
+                    alert(locales[lang]["%alert-unmute-failure"]);
+                }
+            }, 300);
+        };
+        player.setVolume = (volume) => {
+            if(player.online === false) return;
+            player._setVolume(volume);
+        };
+        player.setQuality = (quality) => {
+            if(player.online === false) return;
+            // Check if available
+            const qualities = [...player.getQualities()];
+            const qval = twitchQualityValueFromString(quality);
+            qualities.sort(twitchQualityComparator).reverse();
+            for(const each of qualities) {
+                if(twtichValueOfQuality(each) <= qval) {// find the first quality that is lte to input quality
+                    quality = each.group;
+                    break;
+                }
+            }
+            player._setQuality(quality);
+        };
+        win.addEventListener("maximize", (ev) => {
+            player.setOptions();
+        });
+        win.addEventListener("unmaximize", (ev) => {
+            player.setOptions();
+        });
+    } else {
+        const iframe = createElement("iframe");
+        iframe.src = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}&darkpopout`;
+        win.contentElement.appendChild(iframe);
+    }
+    twitchComponents[win.id] = {
+        channel,
+        chat,
+        options
+    };
+};
+
+/*
+
+{
+    windows: [
+        // from dll.head to tail reversed
+        {
+            id: ...,
+            top: ...,
+            left: ...,
+            width: ...,
+            height: ...,
+            connectedTo: [...ids],
+            xMaximized: false,
+            yMaximized: false
+        }
+    ],
+    windowsTwitch: {
+        "window-id": {
+            channel: "...",
+            chat: false,
+            volume: 0.0,
+            quality: "...",
+            maximizedVolume: 0.0,
+            maximizedQuality: "..."
+        }
+    }
+}
+
+*/
+
+Window.addEventListener("new-window", ev => {
+    const win = ev.detail.target;
+
+    win.addEventListener("swap", swapEv => {
+        const winTo = swapEv.detail.to;
+        const p0 = twitchPlayers[win.id] || null;
+        const p1 = twitchPlayers[winTo.id] || null;
+        if(p0 !== null && p1 !== null) {
+            [twitchComponents[win.id].options, twitchComponents[winTo.id].options] = [
+                twitchComponents[winTo.id].options,
+                twitchComponents[win.id].options
+            ];
+        }
+        if(p0 !== null) p0.setOptions();
+        if(p1 !== null) p1.setOptions();
+
+        storeTwitchSerialization();
+    });
+});
+
+{
+    const t3dWindows = localStorage.getItem("t3d-windows");
+    if(t3dWindows !== null) Window.interpretSerialization(t3dWindows);
+    const t3dTwitch = localStorage.getItem("t3d-twitch");
+    if(t3dTwitch !== null) interpretTwitchComponents(t3dTwitch);
+
+    // Fire resize event for repositioning
+    window.dispatchEvent(new Event('resize'));
+    
+    // Start timer for offline refreshing
+    // - Twitch players sometimes do not go live when the channel goes live
+    /*
+    setInterval(() => {
+        for(let key in twitchComponents) {
+            const player = twitchPlayers[key];
+            if(player.online) continue;
+            
+            player.setChannel(twitchComponents[key].channel);
+        }
+    }, 30*1000); // 30 seconds
+    */
+}
+
+        </script>
+    </body>
+</html>
