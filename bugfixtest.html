@@ -861,7 +861,8 @@ body.still-cursor .window:not(.maximized-xAxis.maximized-yAxis):not(.iframe-enab
             </div>
         </div>
 
-        <script src= "https://player.twitch.tv/js/embed/v1.js"></script>
+        <script src="https://player.twitch.tv/js/embed/v1.js"></script>
+        <script src="https://embed.twitch.tv/embed/v1.js"></script>
         <script>
 
 let lang = navigator.language.slice(0, 2);
@@ -2772,72 +2773,77 @@ const addTwitchComponent = (win, channel, chat, options) => {
     options = {...defaultTwitchOptions, ...options};
     if(!chat) {
         const hostname = window.location.hostname;
-        const generaldomain = hostname.split('.').slice(-2).join('.'); 
-        const player = new Twitch.Player(win.contentElement.id, {
+        const generaldomain = hostname.split('.').slice(-2).join('.');
+        const embed = new Twitch.Embed(win.contentElement.id, {
             channel,
-            parent: [hostname, generaldomain]
+            parent: [hostname, generaldomain],
         });
-        player.setOptions = () => {
-            if(document.body.matches(".window-in-swap")) return;
-
-            const opts = twitchComponents[win.id].options;
-            player.setVolume(win.isMaximized(true) ? opts.maximizedVolume : opts.volume);
-            player.setQuality(win.isMaximized(true) ? opts.maximizedQuality : opts.quality);
-        };
-        twitchPlayers[win.id] = player;
-        player.addEventListener(Twitch.Player.ONLINE, () => {
-            win.element.classList.remove("twitch-offline");
-            player.online = true;
-            player.setOptions();
-        });
-        player.addEventListener(Twitch.Player.PLAY, () => {
-            //win.element.classList.remove("twitch-offline");
-        });
-        player.addEventListener(Twitch.Player.OFFLINE, () => {
-            win.element.classList.add("twitch-offline");
-            player.online = false;
-        });
-        player._setMuted = player.setMuted;
-        player._setVolume = player.setVolume;
-        player._setQuality = player.setQuality;
-        player.setMuted = (muted) => {
-            const muted0 = player.getMuted();
-            if(muted0 === muted) return;
-            player._setMuted(muted);
-            // TODO / ISSUE
-            // Don't know why but setMuted takes ~15 milliseconds to make effect while API docs
-            // say that it is a synchronous call. It seems it has something to do with the
-            // postMessage handling on the twitch.tv iframe side
-            // This is the reason for setTimeout with 300 delay at the moment
-            setTimeout(() => {
-                if(muted === false && player.getMuted() === true) {
-                    alert(locales[lang]["%alert-unmute-failure"]);
+        embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
+            const player = embed.getPlayer();
+    
+            player.setOptions = () => {
+                if(document.body.matches(".window-in-swap")) return;
+    
+                const opts = twitchComponents[win.id].options;
+                player.setVolume(win.isMaximized(true) ? opts.maximizedVolume : opts.volume);
+                player.setQuality(win.isMaximized(true) ? opts.maximizedQuality : opts.quality);
+            };
+            twitchPlayers[win.id] = player;
+            player.addEventListener(Twitch.Player.ONLINE, () => {
+                win.element.classList.remove("twitch-offline");
+                player.online = true;
+                player.setOptions();
+            });
+            player.addEventListener(Twitch.Player.PLAY, () => {
+                //win.element.classList.remove("twitch-offline");
+            });
+            player.addEventListener(Twitch.Player.OFFLINE, () => {
+                win.element.classList.add("twitch-offline");
+                player.online = false;
+            });
+            player._setMuted = player.setMuted;
+            player._setVolume = player.setVolume;
+            player._setQuality = player.setQuality;
+            player.setMuted = (muted) => {
+                const muted0 = player.getMuted();
+                if(muted0 === muted) return;
+                player._setMuted(muted);
+                // TODO / ISSUE
+                // Don't know why but setMuted takes ~15 milliseconds to make effect while API docs
+                // say that it is a synchronous call. It seems it has something to do with the
+                // postMessage handling on the twitch.tv iframe side
+                // This is the reason for setTimeout with 300 delay at the moment
+                setTimeout(() => {
+                    if(muted === false && player.getMuted() === true) {
+                        alert(locales[lang]["%alert-unmute-failure"]);
+                    }
+                }, 300);
+            };
+            player.setVolume = (volume) => {
+                if(player.online === false) return;
+                player._setVolume(volume);
+            };
+            player.setQuality = (quality) => {
+                if(player.online === false) return;
+                // Check if available
+                const qualities = [...player.getQualities()];
+                const qval = twitchQualityValueFromString(quality);
+                qualities.sort(twitchQualityComparator).reverse();
+                for(const each of qualities) {
+                    if(twtichValueOfQuality(each) <= qval) {// find the first quality that is lte to input quality
+                        quality = each.group;
+                        break;
+                    }
                 }
-            }, 300);
-        };
-        player.setVolume = (volume) => {
-            if(player.online === false) return;
-            player._setVolume(volume);
-        };
-        player.setQuality = (quality) => {
-            if(player.online === false) return;
-            // Check if available
-            const qualities = [...player.getQualities()];
-            const qval = twitchQualityValueFromString(quality);
-            qualities.sort(twitchQualityComparator).reverse();
-            for(const each of qualities) {
-                if(twtichValueOfQuality(each) <= qval) {// find the first quality that is lte to input quality
-                    quality = each.group;
-                    break;
-                }
-            }
-            player._setQuality(quality);
-        };
-        win.addEventListener("maximize", (ev) => {
-            player.setOptions();
-        });
-        win.addEventListener("unmaximize", (ev) => {
-            player.setOptions();
+                player._setQuality(quality);
+            };
+            win.addEventListener("maximize", (ev) => {
+                player.setOptions();
+            });
+            win.addEventListener("unmaximize", (ev) => {
+                player.setOptions();
+            });
+            
         });
     } else {
         const iframe = createElement("iframe");
