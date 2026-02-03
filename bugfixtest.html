@@ -2862,6 +2862,20 @@ const addTwitchComponent = (win, channel, chat, options) => {
     };
 };
 
+// One-time event to unlock audio/playback on all players
+const unlockAutoplay = () => {
+    for (const id in twitchPlayers) {
+        const player = twitchPlayers[id];
+        
+        // Ensure player is valid and has the play method
+        if (player && typeof player.play === 'function') {
+            player.play();
+            player.setOptions();
+        }
+    }
+};
+document.addEventListener('pointerdown', unlockAutoplay, { once: true });
+
 /*
 
 {
