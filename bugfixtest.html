@@ -2791,8 +2791,6 @@ const addTwitchComponent = (win, channel, chat, options) => {
             };
             twitchPlayers[win.id] = player;
 
-            win.element.classList.add("twitch-offline");
-            player.online = false;
             player.addEventListener(Twitch.Player.ONLINE, () => {
                 win.element.classList.remove("twitch-offline");
                 player.online = true;
