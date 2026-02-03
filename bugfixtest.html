@@ -2776,6 +2776,7 @@ const addTwitchComponent = (win, channel, chat, options) => {
         const generaldomain = hostname.split('.').slice(-2).join('.');
         const embed = new Twitch.Embed(win.contentElement.id, {
             channel,
+            layout: "video",
             parent: [hostname, generaldomain],
         });
         embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
