@@ -2790,13 +2790,17 @@ const addTwitchComponent = (win, channel, chat, options) => {
                 player.setQuality(win.isMaximized(true) ? opts.maximizedQuality : opts.quality);
             };
             twitchPlayers[win.id] = player;
+
+            win.element.classList.add("twitch-offline");
+            player.online = false;
             player.addEventListener(Twitch.Player.ONLINE, () => {
                 win.element.classList.remove("twitch-offline");
                 player.online = true;
                 player.setOptions();
             });
             player.addEventListener(Twitch.Player.PLAY, () => {
-                //win.element.classList.remove("twitch-offline");
+                win.element.classList.remove("twitch-offline");
+                player.online = true;
             });
             player.addEventListener(Twitch.Player.OFFLINE, () => {
                 win.element.classList.add("twitch-offline");
